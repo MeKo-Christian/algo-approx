@@ -14,10 +14,10 @@ func TestTan2Term(t *testing.T) {
 		tolerance float64
 	}{
 		{"zero", 0.0, 1e-10},
-		{"π/12", math.Pi / 12, 0.01},      // ~15 degrees
-		{"π/8", math.Pi / 8, 0.01},        // ~22.5 degrees
-		{"π/6", math.Pi / 6, 0.01},        // ~30 degrees
-		{"π/4", math.Pi / 4, 0.06},        // ~45 degrees (upper bound, relaxed tolerance)
+		{"π/12", math.Pi / 12, 0.01}, // ~15 degrees
+		{"π/8", math.Pi / 8, 0.01},   // ~22.5 degrees
+		{"π/6", math.Pi / 6, 0.01},   // ~30 degrees
+		{"π/4", math.Pi / 4, 0.06},   // ~45 degrees (upper bound, relaxed tolerance)
 	}
 
 	for _, tt := range tests {
@@ -54,8 +54,8 @@ func TestCotan2Term(t *testing.T) {
 	}{
 		{"π/12", math.Pi / 12, 0.01},
 		{"π/8", math.Pi / 8, 0.01},
-		{"π/6", math.Pi / 6, 0.02},        // Relaxed tolerance for cotangent
-		{"π/4", math.Pi / 4, 0.06},        // Upper bound, more relaxed
+		{"π/6", math.Pi / 6, 0.02}, // Relaxed tolerance for cotangent
+		{"π/4", math.Pi / 4, 0.06}, // Upper bound, more relaxed
 	}
 
 	for _, tt := range tests {
