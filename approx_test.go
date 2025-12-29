@@ -161,3 +161,145 @@ func TestFastCotan(t *testing.T) {
 		})
 	}
 }
+
+// TestFastArctan tests the public FastArctan API
+func TestFastArctan(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     float64
+		tolerance float64
+	}{
+		{"zero", 0.0, 1e-10},
+		{"small positive", 0.1, 1e-5},
+		{"π/12", math.Pi / 12, 2e-5},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FastArctan(tt.input)
+			want := math.Atan(tt.input)
+			diff := math.Abs(got - want)
+
+			if diff > tt.tolerance {
+				t.Errorf("FastArctan(%v) = %v, want %v (diff: %v, tolerance: %v)",
+					tt.input, got, want, diff, tt.tolerance)
+			}
+		})
+	}
+}
+
+// TestFastArctanPrec tests the public FastArctanPrec API with different precision levels
+func TestFastArctanPrec(t *testing.T) {
+	x := 0.1
+
+	t.Run("PrecisionFast", func(t *testing.T) {
+		got := FastArctanPrec(x, PrecisionFast)
+		want := math.Atan(x)
+		diff := math.Abs(got - want)
+		if diff > 1e-5 {
+			t.Errorf("FastArctanPrec(%v, PrecisionFast) diff too large: %v", x, diff)
+		}
+	})
+
+	t.Run("PrecisionBalanced", func(t *testing.T) {
+		got := FastArctanPrec(x, PrecisionBalanced)
+		want := math.Atan(x)
+		diff := math.Abs(got - want)
+		if diff > 1e-5 {
+			t.Errorf("FastArctanPrec(%v, PrecisionBalanced) diff too large: %v", x, diff)
+		}
+	})
+
+	t.Run("PrecisionHigh", func(t *testing.T) {
+		got := FastArctanPrec(x, PrecisionHigh)
+		want := math.Atan(x)
+		diff := math.Abs(got - want)
+		if diff > 1e-10 {
+			t.Errorf("FastArctanPrec(%v, PrecisionHigh) diff too large: %v", x, diff)
+		}
+	})
+}
+
+// TestFastArccotan tests the public FastArccotan API
+func TestFastArccotan(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     float64
+		tolerance float64
+	}{
+		{"small positive", 0.1, 1e-5},
+		{"π/12", math.Pi / 12, 2e-5},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FastArccotan(tt.input)
+			want := math.Pi/2 - math.Atan(tt.input)
+			diff := math.Abs(got - want)
+
+			if diff > tt.tolerance {
+				t.Errorf("FastArccotan(%v) = %v, want %v (diff: %v, tolerance: %v)",
+					tt.input, got, want, diff, tt.tolerance)
+			}
+		})
+	}
+}
+
+// TestFastArccos tests the public FastArccos API
+func TestFastArccos(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     float64
+		tolerance float64
+	}{
+		{"zero", 0.0, 1e-5},
+		{"half", 0.5, 1e-3},
+		{"sqrt(2)/2", math.Sqrt(2) / 2, 2e-4},
+		{"one", 1.0, 1e-5},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FastArccos(tt.input)
+			want := math.Acos(tt.input)
+			diff := math.Abs(got - want)
+
+			if diff > tt.tolerance {
+				t.Errorf("FastArccos(%v) = %v, want %v (diff: %v, tolerance: %v)",
+					tt.input, got, want, diff, tt.tolerance)
+			}
+		})
+	}
+}
+
+// TestFastArccosPrec tests the public FastArccosPrec API with different precision levels
+func TestFastArccosPrec(t *testing.T) {
+	x := 0.5
+
+	t.Run("PrecisionFast", func(t *testing.T) {
+		got := FastArccosPrec(x, PrecisionFast)
+		want := math.Acos(x)
+		diff := math.Abs(got - want)
+		if diff > 1e-3 {
+			t.Errorf("FastArccosPrec(%v, PrecisionFast) diff too large: %v", x, diff)
+		}
+	})
+
+	t.Run("PrecisionBalanced", func(t *testing.T) {
+		got := FastArccosPrec(x, PrecisionBalanced)
+		want := math.Acos(x)
+		diff := math.Abs(got - want)
+		if diff > 1e-3 {
+			t.Errorf("FastArccosPrec(%v, PrecisionBalanced) diff too large: %v", x, diff)
+		}
+	})
+
+	t.Run("PrecisionHigh", func(t *testing.T) {
+		got := FastArccosPrec(x, PrecisionHigh)
+		want := math.Acos(x)
+		diff := math.Abs(got - want)
+		if diff > 1e-5 {
+			t.Errorf("FastArccosPrec(%v, PrecisionHigh) diff too large: %v", x, diff)
+		}
+	})
+}

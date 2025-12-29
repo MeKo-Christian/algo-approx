@@ -200,3 +200,64 @@ func TestTangentPeriodicityProperty(t *testing.T) {
 		}
 	}
 }
+
+// TestArctanArccotanReciprocal verifies that arctan(x) + arccotan(x) ≈ π/2
+func TestArctanArccotanReciprocal(t *testing.T) {
+	tolerance := 0.0001
+
+	tests := []float64{0.1, 0.2, 0.25}
+
+	for _, x := range tests {
+		arctan := FastArctan(x)
+		arccotan := FastArccotan(x)
+		sum := arctan + arccotan
+
+		expected := math.Pi / 2
+		diff := math.Abs(sum - expected)
+
+		if diff > tolerance {
+			t.Errorf("arctan(%v) + arccotan(%v) = %v, want ~π/2=%v (diff: %v)",
+				x, x, sum, expected, diff)
+		}
+	}
+}
+
+// TestArccosComplementarity verifies that arccos(x) + arcsin(x) ≈ π/2 for small x
+func TestArccosComplementarity(t *testing.T) {
+	tolerance := 0.002
+
+	tests := []float64{0.0, 0.5, math.Sqrt(2) / 2}
+
+	for _, x := range tests {
+		arccos := FastArccos(x)
+		// arcsin(x) ≈ π/2 - arccos(x)
+		arcsin := math.Pi/2 - arccos
+
+		expected := math.Asin(x)
+		diff := math.Abs(arcsin - expected)
+
+		if diff > tolerance {
+			t.Errorf("arcsin(%v) via arccos = %v, want %v (diff: %v)",
+				x, arcsin, expected, diff)
+		}
+	}
+}
+
+// TestInverseTrigRoundTrip tests that tan(arctan(x)) ≈ x for small x
+func TestInverseTrigRoundTrip(t *testing.T) {
+	tolerance := 0.0001
+
+	tests := []float64{0.0, 0.1, 0.2}
+
+	for _, x := range tests {
+		arctan := FastArctan(x)
+		result := math.Tan(arctan)
+
+		diff := math.Abs(result - x)
+
+		if diff > tolerance {
+			t.Errorf("tan(arctan(%v)) = %v, want %v (diff: %v)",
+				x, result, x, diff)
+		}
+	}
+}

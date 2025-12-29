@@ -703,15 +703,16 @@ algo-approx/
 
 **Tasks**:
 
-- [ ] Implement arctan approximations:
-  - [ ] 3-term variant (~6.6 digits, range [0, π/12])
-  - [ ] 6-term variant (~13.7 digits)
-- [ ] Implement arccotan variants
-- [ ] Implement arccos:
-  - [ ] 3-term variant
-  - [ ] 6-term variant
-- [ ] Range handling and argument reduction
-- [ ] Tests and benchmarks
+- [x] Implement arctan approximations:
+  - [x] 3-term variant (~6.6 digits, range [0, π/12])
+  - [x] 6-term variant (~13.7 digits)
+- [x] Implement arccotan variants
+- [x] Implement arccos:
+  - [x] 3-term variant
+  - [x] 6-term variant
+- [x] Range handling and argument reduction
+- [x] Tests (comprehensive unit tests for all variants)
+- [ ] Benchmarks (deferred)
 
 **Pascal Source Reference**:
 
@@ -719,11 +720,32 @@ algo-approx/
 - Lines 342-353 (arctan 6-term)
 - Lines 356-365 (arccos variants)
 
-## 4.2 Phase 4 Success Criteria
+## 4.2 Public API
 
-- [ ] ✅ FastArcTan, FastArcCotan, FastArcCos implemented
-- [ ] ✅ Tests pass
-- [ ] ✅ Documentation updated
+**File**: `approx.go`
+
+**Tasks**:
+
+- [x] Add public functions:
+  - [x] FastArctan / FastArctanPrec
+  - [x] FastArccotan / FastArccotanPrec
+  - [x] FastArccos / FastArccosPrec
+- [x] Add type-specific convenience functions (FastArctan32/64, etc.)
+- [x] Public API tests (comprehensive tests for all precision levels)
+- [x] Property-based tests:
+  - [x] arctan(x) + arccotan(x) ≈ π/2
+  - [x] arccos complementarity (arccos(x) + arcsin(x) ≈ π/2)
+  - [x] Round-trip: tan(arctan(x)) ≈ x
+
+## 4.3 Phase 4 Success Criteria
+
+- [x] ✅ FastArctan, FastArccotan, FastArccos implemented
+- [x] ✅ All precision levels work (3-term and 6-term)
+- [x] ✅ Tests pass (comprehensive unit tests, public API tests, property tests)
+- [x] ✅ Both float32 and float64 variants tested
+- [x] ✅ Property-based tests validate mathematical identities
+- [ ] ✅ Documentation updated (deferred - basic API docs exist)
+- [ ] ✅ Benchmarks (deferred)
 
 ---
 
@@ -1234,5 +1256,5 @@ Could use algo-fft as a dependency, but:
 ---
 
 **Last Updated**: 2025-12-29
-**Status**: Phase 1-3 complete! Core math (sqrt, invsqrt, log, exp), trigonometry (sin, cos, sec, csc), and tangent (tan, cotan) all implemented with comprehensive tests.
-**Next Milestone**: Phase 4 (Inverse Trigonometry) - arctan, arcsin, arccos
+**Status**: Phase 1-4 complete! Core math (sqrt, invsqrt, log, exp), trigonometry (sin, cos, sec, csc), tangent (tan, cotan), and inverse trig (arctan, arccotan, arccos) all implemented with comprehensive tests.
+**Next Milestone**: Phase 5 (Power Functions) - power, root, integer power

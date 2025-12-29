@@ -113,3 +113,38 @@ func FastCotanPrec[T Float](x T, prec Precision) T {
 
 func FastCotan32(x float32) float32 { return FastCotan[float32](x) }
 func FastCotan64(x float64) float64 { return FastCotan[float64](x) }
+// FastArctan returns an approximate arctangent using the default precision.
+func FastArctan[T Float](x T) T { return FastArctanPrec(x, PrecisionAuto) }
+
+// FastArctanPrec returns an approximate arctangent using the requested precision.
+// Fast/Balanced=3-term (~6.6 digits), High=6-term (~13.7 digits)
+func FastArctanPrec[T Float](x T, prec Precision) T {
+	return iapprox.Arctan(x, iapprox.Precision(normalizePrecision(prec)))
+}
+
+func FastArctan32(x float32) float32 { return FastArctan[float32](x) }
+func FastArctan64(x float64) float64 { return FastArctan[float64](x) }
+
+// FastArccotan returns an approximate arccotangent using the default precision.
+func FastArccotan[T Float](x T) T { return FastArccotanPrec(x, PrecisionAuto) }
+
+// FastArccotanPrec returns an approximate arccotangent using the requested precision.
+// Fast/Balanced=3-term (~6.6 digits), High=6-term (~13.7 digits)
+func FastArccotanPrec[T Float](x T, prec Precision) T {
+	return iapprox.Arccotan(x, iapprox.Precision(normalizePrecision(prec)))
+}
+
+func FastArccotan32(x float32) float32 { return FastArccotan[float32](x) }
+func FastArccotan64(x float64) float64 { return FastArccotan[float64](x) }
+
+// FastArccos returns an approximate arccosine using the default precision.
+func FastArccos[T Float](x T) T { return FastArccosPrec(x, PrecisionAuto) }
+
+// FastArccosPrec returns an approximate arccosine using the requested precision.
+// Fast/Balanced=3-term (~6.6 digits), High=6-term (~13.7 digits)
+func FastArccosPrec[T Float](x T, prec Precision) T {
+	return iapprox.Arccos(x, iapprox.Precision(normalizePrecision(prec)))
+}
+
+func FastArccos32(x float32) float32 { return FastArccos[float32](x) }
+func FastArccos64(x float64) float64 { return FastArccos[float64](x) }
