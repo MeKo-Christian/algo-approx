@@ -32,7 +32,8 @@ func Power[T Float](base, exponent T) T {
 	}
 
 	// Use exp/log composition: base^exponent = exp(exponent * ln(base))
-	return Exp(exponent * Ln(base))
+	// Use balanced precision for both exp and log
+	return Exp(exponent*Log(base, PrecisionBalanced), PrecisionBalanced)
 }
 
 // Root computes the nth root of value using Power.
@@ -58,7 +59,7 @@ func Root[T Float](value T, n int) T {
 
 	// Special case for square root (most common case)
 	if n == 2 {
-		return Sqrt2(value)
+		return Sqrt(value, PrecisionBalanced)
 	}
 
 	// For nth root: value^(1/n)

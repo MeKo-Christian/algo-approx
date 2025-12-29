@@ -761,27 +761,48 @@ algo-approx/
 
 **Tasks**:
 
-- [ ] Implement FastPower using exp/log composition:
+- [x] Implement FastPower using exp/log composition:
   ```go
   func Power[T Float](base, exponent T) T {
-      return Exp(exponent * Log(base))
+      return Exp(exponent * Log(base, PrecisionBalanced), PrecisionBalanced)
   }
   ```
-- [ ] Implement FastRoot (generalized nth root)
-- [ ] Implement FastIntPower (efficient integer exponentiation):
-  - [ ] Binary exponentiation for speed
-  - [ ] Handle negative exponents
-- [ ] Tests and benchmarks
+- [x] Implement FastRoot (generalized nth root)
+- [x] Implement FastIntPower (efficient integer exponentiation):
+  - [x] Binary exponentiation for speed
+  - [x] Handle negative exponents
+- [x] Tests (comprehensive unit tests for all variants)
+- [ ] Benchmarks (deferred)
 
 **Pascal Source Reference**:
 
 - Lines 37-41 (`FastRoot`, `FastIntPower`, `FastPower`)
 
-## 5.2 Phase 5 Success Criteria
+## 5.2 Public API
 
-- [ ] ✅ FastPower, FastRoot, FastIntPower implemented
-- [ ] ✅ Tests pass
-- [ ] ✅ Core function suite complete
+**File**: `approx.go`
+
+**Tasks**:
+
+- [x] Add public functions:
+  - [x] FastPower / FastPower32 / FastPower64
+  - [x] FastRoot / FastRoot32 / FastRoot64
+  - [x] FastIntPower / FastIntPower32 / FastIntPower64
+- [x] Public API tests (comprehensive tests for all functions)
+- [x] Property-based tests:
+  - [x] root(x^n, n) ≈ x
+  - [x] IntPower vs Power consistency for integer exponents
+  - [x] Power exponent laws: (a^b)^c = a^(b*c)
+  - [x] sqrt(x) = root(x, 2)
+  - [x] x^(-n) = 1/(x^n)
+
+## 5.3 Phase 5 Success Criteria
+
+- [x] ✅ FastPower, FastRoot, FastIntPower implemented
+- [x] ✅ Tests pass (all internal and public API tests passing)
+- [x] ✅ Property-based tests validate mathematical identities
+- [x] ✅ Core function suite complete
+- [ ] ✅ Benchmarks (deferred - basic implementation complete)
 
 ---
 
@@ -1256,5 +1277,5 @@ Could use algo-fft as a dependency, but:
 ---
 
 **Last Updated**: 2025-12-29
-**Status**: Phase 1-4 complete! Core math (sqrt, invsqrt, log, exp), trigonometry (sin, cos, sec, csc), tangent (tan, cotan), and inverse trig (arctan, arccotan, arccos) all implemented with comprehensive tests.
-**Next Milestone**: Phase 5 (Power Functions) - power, root, integer power
+**Status**: Phase 1-5 complete! Core math (sqrt, invsqrt, log, exp), trigonometry (sin, cos, sec, csc), tangent (tan, cotan), inverse trig (arctan, arccotan, arccos), and power functions (power, root, integer power) all implemented with comprehensive tests.
+**Next Milestone**: Phase 6 (SIMD Optimization) - AVX2 vectorized implementations for batch processing
