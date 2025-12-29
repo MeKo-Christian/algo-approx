@@ -198,7 +198,7 @@ func cotan6Term[T Float](x T) T {
 // Tan computes tangent with precision-based term selection.
 // Maps precision levels to term counts:
 //   - PrecisionFast (2): ~3.2 decimal digits
-//   - PrecisionBalanced (3): ~5.6 decimal digits  
+//   - PrecisionBalanced (3): ~5.6 decimal digits
 //   - PrecisionHigh (6): ~14 decimal digits
 func Tan[T Float](x T, prec Precision) T {
 	switch prec {

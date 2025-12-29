@@ -633,19 +633,22 @@ algo-approx/
 
 **Tasks**:
 
-- [ ] Implement tangent approximations:
-  - [ ] 2-term variants (~3.2 digits, range [0, π/4])
-  - [ ] 3-term variants (~5.6 digits)
-  - [ ] 4-term variants (~8.2 digits)
-  - [ ] 6-term variants (~14 digits)
-- [ ] Implement cotangent (cotan) variants
-- [ ] Range-specific optimizations:
-  - [ ] "Part" variants (partial range [0, π/4])
-  - [ ] "PInv" variants (reciprocal of Part)
-  - [ ] "InBounds" variants (pre-reduced input)
-  - [ ] Full-range variants with reduction
-- [ ] Generic wrappers
-- [ ] Tests and benchmarks
+- [x] Implement tangent approximations:
+  - [x] 2-term variants (~3.2 digits, range [0, π/4])
+  - [x] 3-term variants (~5.6 digits)
+  - [x] 4-term variants (~8.2 digits)
+  - [x] 6-term variants (~14 digits)
+- [x] Implement cotangent (cotan) variants
+- [x] Range-specific optimizations:
+  - [x] Full-range variants with reduction to [0, π/4]
+  - [x] Quadrant mapping and sign handling
+  - [x] Reciprocal optimization for angles > π/4
+  - [ ] "Part" variants (partial range [0, π/4]) - deferred (not needed for MVP)
+  - [ ] "PInv" variants (reciprocal of Part) - deferred (not needed for MVP)
+  - [ ] "InBounds" variants (pre-reduced input) - deferred (not needed for MVP)
+- [x] Generic wrappers with precision dispatch (Tan, Cotan)
+- [x] Tests (unit tests for all term variants, both float32/float64)
+- [ ] Benchmarks (deferred)
 
 **Pascal Source Reference**:
 
@@ -660,18 +663,31 @@ algo-approx/
 
 **Tasks**:
 
-- [ ] Add public functions:
+- [x] Add public functions:
+
   ```go
   func FastTan[T Float](x T) T
+  func FastTanPrec[T Float](x T, prec Precision) T
   func FastCotan[T Float](x T) T
+  func FastCotanPrec[T Float](x T, prec Precision) T
   ```
+
+- [x] Add type-specific convenience functions (FastTan32, FastTan64, FastCotan32, FastCotan64)
+- [x] Public API tests (TestFastTan, TestFastTanPrec, TestFastCotan)
+- [x] Property-based tests:
+  - [x] tan(x) × cotan(x) ≈ 1
+  - [x] cotan(x) ≈ 1/tan(x)
+  - [x] tan(x + π) ≈ tan(x) (periodicity)
 
 ## 3.3 Phase 3 Success Criteria
 
-- [ ] ✅ FastTan and FastCotan implemented
-- [ ] ✅ All precision levels work
-- [ ] ✅ Tests pass
-- [ ] ✅ Documentation updated
+- [x] ✅ FastTan and FastCotan implemented
+- [x] ✅ All precision levels work (2-term, 3-term, 4-term, 6-term)
+- [x] ✅ Tests pass (145+ tests across all packages)
+- [x] ✅ Range reduction working for full input range
+- [x] ✅ Both float32 and float64 variants tested
+- [x] ✅ Property-based tests validate mathematical identities
+- [ ] ✅ Documentation updated (deferred - basic API docs exist)
 
 ---
 
@@ -1217,6 +1233,6 @@ Could use algo-fft as a dependency, but:
 
 ---
 
-**Last Updated**: 2025-12-28
-**Status**: Phase 1 mostly complete (core + tests + CI config); docs/bench/fuzz/accuracy remaining
-**Next Milestone**: Finish Phase 1 documentation + benchmarks + accuracy report
+**Last Updated**: 2025-12-29
+**Status**: Phase 1-3 complete! Core math (sqrt, invsqrt, log, exp), trigonometry (sin, cos, sec, csc), and tangent (tan, cotan) all implemented with comprehensive tests.
+**Next Milestone**: Phase 4 (Inverse Trigonometry) - arctan, arcsin, arccos
