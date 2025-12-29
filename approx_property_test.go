@@ -261,3 +261,133 @@ func TestInverseTrigRoundTrip(t *testing.T) {
 		}
 	}
 }
+// TestPowerRootIdentity tests the identity: root(x^n, n) ≈ x
+func TestPowerRootIdentity(t *testing.T) {
+	tolerance := 1e-4
+
+	tests := []struct {
+		x float64
+		n int
+	}{
+		{2.0, 2},
+		{2.0, 3},
+		{3.0, 2},
+		{5.0, 3},
+		{10.0, 2},
+	}
+
+	for _, tt := range tests {
+		// x^n
+		powered := FastIntPower(tt.x, tt.n)
+		// root(x^n, n) should give back x
+		result := FastRoot(powered, tt.n)
+
+		diff := math.Abs(result - tt.x)
+		if diff > tolerance {
+			t.Errorf("root(%v^%v, %v) = %v, want %v (diff: %v)",
+				tt.x, tt.n, tt.n, result, tt.x, diff)
+		}
+	}
+}
+
+// TestIntPowerVsPower tests that IntPower and Power give similar results for integer exponents
+func TestIntPowerVsPower(t *testing.T) {
+	tests := []struct {
+		base      float64
+		exponent  int
+		tolerance float64
+	}{
+		{2.0, 3, 1e-3},
+		{3.0, 2, 1e-3},
+		{2.0, 10, 0.2},    // Higher exponents accumulate more error
+		{1.5, 5, 0.01},
+	}
+
+	for _, tt := range tests {
+		intPowResult := FastIntPower(tt.base, tt.exponent)
+		powResult := FastPower(tt.base, float64(tt.exponent))
+
+		diff := math.Abs(intPowResult - powResult)
+		if diff > tt.tolerance {
+			t.Errorf("IntPower(%v, %v) = %v, Power(%v, %v) = %v (diff: %v, tolerance: %v)",
+				tt.base, tt.exponent, intPowResult, tt.base, tt.exponent, powResult, diff, tt.tolerance)
+		}
+	}
+}
+
+// TestPowerExponentLaws tests power laws: (a^b)^c = a^(b*c)
+func TestPowerExponentLaws(t *testing.T) {
+	tolerance := 1e-2
+
+	tests := []struct {
+		a float64
+		b float64
+		c float64
+	}{
+		{2.0, 2.0, 3.0},
+		{3.0, 1.5, 2.0},
+		{4.0, 0.5, 2.0},
+	}
+
+	for _, tt := range tests {
+		// (a^b)^c
+		ab := FastPower(tt.a, tt.b)
+		abc := FastPower(ab, tt.c)
+
+		// a^(b*c)
+		bc := tt.b * tt.c
+		expected := FastPower(tt.a, bc)
+
+		diff := math.Abs(abc - expected)
+		relDiff := diff / math.Abs(expected)
+
+		if relDiff > tolerance {
+			t.Errorf("(%v^%v)^%v = %v, want %v^(%v*%v) = %v (rel diff: %v)",
+				tt.a, tt.b, tt.c, abc, tt.a, tt.b, tt.c, expected, relDiff)
+		}
+	}
+}
+
+// TestRootSquareIdentity tests: sqrt(x) = root(x, 2)
+func TestRootSquareIdentity(t *testing.T) {
+	tolerance := 1e-10
+
+	tests := []float64{1.0, 2.0, 4.0, 9.0, 16.0, 100.0}
+
+	for _, x := range tests {
+		sqrtVal := FastSqrt(x)
+		rootVal := FastRoot(x, 2)
+
+		diff := math.Abs(sqrtVal - rootVal)
+		if diff > tolerance {
+			t.Errorf("sqrt(%v) = %v, root(%v, 2) = %v (diff: %v)",
+				x, sqrtVal, x, rootVal, diff)
+		}
+	}
+}
+
+// TestIntPowerNegativeExponent tests: x^(-n) = 1/(x^n)
+func TestIntPowerNegativeExponent(t *testing.T) {
+	tolerance := 1e-14
+
+	tests := []struct {
+		base float64
+		exp  int
+	}{
+		{2.0, 2},
+		{3.0, 3},
+		{10.0, 2},
+	}
+
+	for _, tt := range tests {
+		negPow := FastIntPower(tt.base, -tt.exp)
+		posPow := FastIntPower(tt.base, tt.exp)
+		expected := 1.0 / posPow
+
+		diff := math.Abs(negPow - expected)
+		if diff > tolerance {
+			t.Errorf("IntPower(%v, -%v) = %v, want 1/IntPower(%v, %v) = %v (diff: %v)",
+				tt.base, tt.exp, negPow, tt.base, tt.exp, expected, diff)
+		}
+	}
+}

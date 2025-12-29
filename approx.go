@@ -113,6 +113,7 @@ func FastCotanPrec[T Float](x T, prec Precision) T {
 
 func FastCotan32(x float32) float32 { return FastCotan[float32](x) }
 func FastCotan64(x float64) float64 { return FastCotan[float64](x) }
+
 // FastArctan returns an approximate arctangent using the default precision.
 func FastArctan[T Float](x T) T { return FastArctanPrec(x, PrecisionAuto) }
 
@@ -148,3 +149,35 @@ func FastArccosPrec[T Float](x T, prec Precision) T {
 
 func FastArccos32(x float32) float32 { return FastArccos[float32](x) }
 func FastArccos64(x float64) float64 { return FastArccos[float64](x) }
+
+// FastPower returns an approximate power base^exponent.
+// Uses exp/log composition: base^exponent = exp(exponent * ln(base))
+func FastPower[T Float](base, exponent T) T {
+	return iapprox.Power(base, exponent)
+}
+
+func FastPower32(base, exponent float32) float32 { return FastPower[float32](base, exponent) }
+func FastPower64(base, exponent float64) float64 { return FastPower[float64](base, exponent) }
+
+// FastRoot returns an approximate nth root of value.
+// Uses the identity: root(value, n) = value^(1/n)
+func FastRoot[T Float](value T, n int) T {
+	return iapprox.Root(value, n)
+}
+
+func FastRoot32(value float32, n int) float32 { return FastRoot[float32](value, n) }
+func FastRoot64(value float64, n int) float64 { return FastRoot[float64](value, n) }
+
+// FastIntPower returns an approximate integer power base^exponent.
+// Uses efficient binary exponentiation for integer exponents.
+func FastIntPower[T Float](base T, exponent int) T {
+	return iapprox.IntPower(base, exponent)
+}
+
+func FastIntPower32(base float32, exponent int) float32 {
+	return FastIntPower[float32](base, exponent)
+}
+
+func FastIntPower64(base float64, exponent int) float64 {
+	return FastIntPower[float64](base, exponent)
+}

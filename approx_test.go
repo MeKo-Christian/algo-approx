@@ -303,3 +303,88 @@ func TestFastArccosPrec(t *testing.T) {
 		}
 	})
 }
+
+// TestFastPower tests the public FastPower API
+func TestFastPower(t *testing.T) {
+	tests := []struct {
+		name      string
+		base      float64
+		exponent  float64
+		tolerance float64
+	}{
+		{"2^3", 2.0, 3.0, 1e-3},
+		{"3^2", 3.0, 2.0, 1e-4},
+		{"10^0.5", 10.0, 0.5, 1e-4},
+		{"2^-2", 2.0, -2.0, 1e-4},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FastPower(tt.base, tt.exponent)
+			want := math.Pow(tt.base, tt.exponent)
+			diff := math.Abs(got - want)
+
+			if diff > tt.tolerance {
+				t.Errorf("FastPower(%v, %v) = %v, want %v (diff: %v, tolerance: %v)",
+					tt.base, tt.exponent, got, want, diff, tt.tolerance)
+			}
+		})
+	}
+}
+
+// TestFastRoot tests the public FastRoot API
+func TestFastRoot(t *testing.T) {
+	tests := []struct {
+		name      string
+		value     float64
+		n         int
+		tolerance float64
+	}{
+		{"sqrt(4)", 4.0, 2, 1e-5},
+		{"cbrt(8)", 8.0, 3, 1e-4},
+		{"cbrt(27)", 27.0, 3, 1e-4},
+		{"4th root(16)", 16.0, 4, 1e-4},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FastRoot(tt.value, tt.n)
+			want := math.Pow(tt.value, 1.0/float64(tt.n))
+			diff := math.Abs(got - want)
+
+			if diff > tt.tolerance {
+				t.Errorf("FastRoot(%v, %v) = %v, want %v (diff: %v, tolerance: %v)",
+					tt.value, tt.n, got, want, diff, tt.tolerance)
+			}
+		})
+	}
+}
+
+// TestFastIntPower tests the public FastIntPower API
+func TestFastIntPower(t *testing.T) {
+	tests := []struct {
+		name      string
+		base      float64
+		exponent  int
+		tolerance float64
+	}{
+		{"2^0", 2.0, 0, 1e-15},
+		{"2^1", 2.0, 1, 1e-15},
+		{"2^3", 2.0, 3, 1e-15},
+		{"2^10", 2.0, 10, 1e-12},
+		{"2^-2", 2.0, -2, 1e-15},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FastIntPower(tt.base, tt.exponent)
+			want := math.Pow(tt.base, float64(tt.exponent))
+			diff := math.Abs(got - want)
+
+			if diff > tt.tolerance {
+				t.Errorf("FastIntPower(%v, %v) = %v, want %v (diff: %v, tolerance: %v)",
+					tt.base, tt.exponent, got, want, diff, tt.tolerance)
+			}
+		})
+	}
+}
