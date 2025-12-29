@@ -18,9 +18,11 @@ func sqrtBabylonian[T Float](x T, iterations int) T {
 	if x == 0 {
 		return 0
 	}
+
 	if x < 0 {
 		return T(math.NaN())
 	}
+
 	if x != x {
 		return x
 	}
@@ -38,9 +40,10 @@ func sqrtBabylonian[T Float](x T, iterations int) T {
 
 	// Babylonian iteration: y_{n+1} = 0.5*(y + x/y)
 	half := T(0.5)
-	for i := 0; i < iterations; i++ {
+	for range iterations {
 		y = half * (y + x/y)
 	}
+
 	return y
 }
 
@@ -51,10 +54,12 @@ func sqrtInitialGuess[T Float](x T) T {
 		ux := math.Float32bits(float32(x))
 		// Approximate sqrt by halving exponent; constant chosen empirically.
 		ux = (ux >> 1) + 0x1fc00000
+
 		return T(math.Float32frombits(ux))
 	default:
 		ux := math.Float64bits(float64(x))
 		ux = (ux >> 1) + 0x1ff8000000000000
+
 		return T(math.Float64frombits(ux))
 	}
 }

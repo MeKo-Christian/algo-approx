@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestSin3Term tests the 3-term Taylor series approximation for sine
+// TestSin3Term tests the 3-term Taylor series approximation for sine.
 func TestSin3Term(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -31,7 +31,7 @@ func TestSin3Term(t *testing.T) {
 	}
 }
 
-// TestSin3TermFloat32 tests the 3-term sine approximation with float32
+// TestSin3TermFloat32 tests the 3-term sine approximation with float32.
 func TestSin3TermFloat32(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -54,7 +54,7 @@ func TestSin3TermFloat32(t *testing.T) {
 	}
 }
 
-// TestCos3Term tests the 3-term Taylor series approximation for cosine
+// TestCos3Term tests the 3-term Taylor series approximation for cosine.
 func TestCos3Term(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -80,7 +80,7 @@ func TestCos3Term(t *testing.T) {
 	}
 }
 
-// TestCos3TermFloat32 tests the 3-term cosine approximation with float32
+// TestCos3TermFloat32 tests the 3-term cosine approximation with float32.
 func TestCos3TermFloat32(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -103,7 +103,7 @@ func TestCos3TermFloat32(t *testing.T) {
 	}
 }
 
-// TestSec3Term tests the 3-term secant approximation (sec = 1/cos)
+// TestSec3Term tests the 3-term secant approximation (sec = 1/cos).
 func TestSec3Term(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -127,7 +127,7 @@ func TestSec3Term(t *testing.T) {
 	}
 }
 
-// TestCsc3Term tests the 3-term cosecant approximation (csc = 1/sin)
+// TestCsc3Term tests the 3-term cosecant approximation (csc = 1/sin).
 func TestCsc3Term(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -151,7 +151,7 @@ func TestCsc3Term(t *testing.T) {
 	}
 }
 
-// TestSin4Term tests the 4-term Taylor series approximation for sine
+// TestSin4Term tests the 4-term Taylor series approximation for sine.
 func TestSin4Term(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -176,7 +176,7 @@ func TestSin4Term(t *testing.T) {
 	}
 }
 
-// TestCos4Term tests the 4-term Taylor series approximation for cosine
+// TestCos4Term tests the 4-term Taylor series approximation for cosine.
 func TestCos4Term(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -201,7 +201,7 @@ func TestCos4Term(t *testing.T) {
 	}
 }
 
-// TestSec4Term tests the 4-term secant approximation
+// TestSec4Term tests the 4-term secant approximation.
 func TestSec4Term(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -224,7 +224,7 @@ func TestSec4Term(t *testing.T) {
 	}
 }
 
-// TestCsc4Term tests the 4-term cosecant approximation
+// TestCsc4Term tests the 4-term cosecant approximation.
 func TestCsc4Term(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -247,7 +247,7 @@ func TestCsc4Term(t *testing.T) {
 	}
 }
 
-// TestSin5Term tests the 5-term Taylor series approximation for sine
+// TestSin5Term tests the 5-term Taylor series approximation for sine.
 func TestSin5Term(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -272,7 +272,7 @@ func TestSin5Term(t *testing.T) {
 	}
 }
 
-// TestCos5Term tests the 5-term Taylor series approximation for cosine
+// TestCos5Term tests the 5-term Taylor series approximation for cosine.
 func TestCos5Term(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -297,7 +297,7 @@ func TestCos5Term(t *testing.T) {
 	}
 }
 
-// TestSec5Term tests the 5-term secant approximation
+// TestSec5Term tests the 5-term secant approximation.
 func TestSec5Term(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -320,7 +320,7 @@ func TestSec5Term(t *testing.T) {
 	}
 }
 
-// TestCsc5Term tests the 5-term cosecant approximation
+// TestCsc5Term tests the 5-term cosecant approximation.
 func TestCsc5Term(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -343,7 +343,7 @@ func TestCsc5Term(t *testing.T) {
 	}
 }
 
-// TestSin6Term tests the 6-term Taylor series approximation for sine
+// TestSin6Term tests the 6-term Taylor series approximation for sine.
 func TestSin6Term(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -368,7 +368,7 @@ func TestSin6Term(t *testing.T) {
 	}
 }
 
-// TestCos6Term tests the 6-term Taylor series approximation for cosine
+// TestCos6Term tests the 6-term Taylor series approximation for cosine.
 func TestCos6Term(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -393,7 +393,7 @@ func TestCos6Term(t *testing.T) {
 	}
 }
 
-// TestSec6Term tests the 6-term secant approximation
+// TestSec6Term tests the 6-term secant approximation.
 func TestSec6Term(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -416,7 +416,7 @@ func TestSec6Term(t *testing.T) {
 	}
 }
 
-// TestCsc6Term tests the 6-term cosecant approximation
+// TestCsc6Term tests the 6-term cosecant approximation.
 func TestCsc6Term(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -439,7 +439,7 @@ func TestCsc6Term(t *testing.T) {
 	}
 }
 
-// TestSin7Term tests the 7-term Taylor series approximation for sine (~12.1 digits)
+// TestSin7Term tests the 7-term Taylor series approximation for sine (~12.1 digits).
 func TestSin7Term(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -464,7 +464,7 @@ func TestSin7Term(t *testing.T) {
 	}
 }
 
-// TestCos7Term tests the 7-term Taylor series approximation for cosine
+// TestCos7Term tests the 7-term Taylor series approximation for cosine.
 func TestCos7Term(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -489,7 +489,7 @@ func TestCos7Term(t *testing.T) {
 	}
 }
 
-// TestSec7Term tests the 7-term secant approximation
+// TestSec7Term tests the 7-term secant approximation.
 func TestSec7Term(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -512,7 +512,7 @@ func TestSec7Term(t *testing.T) {
 	}
 }
 
-// TestCsc7Term tests the 7-term cosecant approximation
+// TestCsc7Term tests the 7-term cosecant approximation.
 func TestCsc7Term(t *testing.T) {
 	tests := []struct {
 		name  string

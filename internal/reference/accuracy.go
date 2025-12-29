@@ -39,15 +39,18 @@ func MeasureAccuracy[T approx.Float](samples []T, refFn, approxFn func(T) T) Acc
 
 		sumAbs += absErr
 		sumSq += err * err
+
 		if absErr > maxAbs {
 			maxAbs = absErr
 		}
 
 		den := math.Abs(ref)
+
 		rel := absErr
 		if den != 0 {
 			rel = absErr / den
 		}
+
 		if rel > maxRel {
 			maxRel = rel
 		}

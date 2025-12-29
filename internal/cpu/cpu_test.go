@@ -9,7 +9,6 @@ import (
 // TestDetectFeatures tests that CPU feature detection returns valid results.
 func TestDetectFeatures(t *testing.T) {
 	// Not parallel: tests manipulate global detection state.
-
 	features := DetectFeatures()
 
 	// Architecture should always be set
@@ -65,7 +64,6 @@ func TestQueryFunctions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Not parallel: tests manipulate global detection state.
-
 			if tt.got != tt.expected {
 				t.Errorf("%s() = %v, want %v", tt.name, tt.got, tt.expected)
 			}
@@ -80,7 +78,6 @@ func TestForcedFeatures(t *testing.T) {
 	// Test SSE2-only system
 	t.Run("SSE2Only", func(t *testing.T) {
 		// Not parallel: tests manipulate global detection state.
-
 		defer ResetDetection()
 
 		SetForcedFeatures(Features{
@@ -117,7 +114,6 @@ func TestForcedFeatures(t *testing.T) {
 	// Test AVX2 system
 	t.Run("AVX2System", func(t *testing.T) {
 		// Not parallel: tests manipulate global detection state.
-
 		defer ResetDetection()
 
 		SetForcedFeatures(Features{
@@ -162,7 +158,6 @@ func TestForcedFeatures(t *testing.T) {
 	// Test ARM NEON system
 	t.Run("NEONSystem", func(t *testing.T) {
 		// Not parallel: tests manipulate global detection state.
-
 		defer ResetDetection()
 
 		SetForcedFeatures(Features{
@@ -187,7 +182,6 @@ func TestForcedFeatures(t *testing.T) {
 	// Test ForceGeneric flag
 	t.Run("ForceGeneric", func(t *testing.T) {
 		// Not parallel: tests manipulate global detection state.
-
 		defer ResetDetection()
 
 		SetForcedFeatures(Features{

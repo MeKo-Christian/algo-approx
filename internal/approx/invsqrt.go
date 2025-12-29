@@ -18,12 +18,15 @@ func invSqrtQuakeNR[T Float](x T, iters int) T {
 	if x == 0 {
 		return T(math.Inf(1))
 	}
+
 	if x < 0 {
 		return T(math.NaN())
 	}
+
 	if x != x {
 		return x
 	}
+
 	if math.IsInf(float64(x), 0) {
 		// 1/sqrt(+Inf) = 0
 		return 0
@@ -34,9 +37,10 @@ func invSqrtQuakeNR[T Float](x T, iters int) T {
 	threeHalf := T(1.5)
 
 	// Newton-Raphson refinement for 1/sqrt(x): y = y*(1.5 - 0.5*x*y*y)
-	for i := 0; i < iters; i++ {
-		y = y * (threeHalf - half*x*y*y)
+	for range iters {
+		y *= (threeHalf - half*x*y*y)
 	}
+
 	return y
 }
 
@@ -48,6 +52,7 @@ func invSqrtQuake[T Float](x T) T {
 		i := math.Float32bits(xf)
 		i = 0x5f3759df - (i >> 1)
 		y := math.Float32frombits(i)
+
 		return T(y)
 	default:
 		xf := float64(x)
@@ -55,6 +60,7 @@ func invSqrtQuake[T Float](x T) T {
 		// Commonly used 64-bit magic constant for the Quake-style seed.
 		i = 0x5fe6eb50c7b537a9 - (i >> 1)
 		y := math.Float64frombits(i)
+
 		return T(y)
 	}
 }

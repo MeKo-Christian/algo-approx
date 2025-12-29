@@ -5,7 +5,7 @@ import "math"
 // tan2Term computes tangent using a 2-term Taylor series approximation.
 // Taylor series: tan(x) ≈ x + x³/3 for x near 0
 // Expected accuracy: ~3.2 decimal digits for |x| < π/4
-// Valid range: [0, π/4]
+// Valid range: [0, π/4].
 func tan2Term[T Float](x T) T {
 	// For tangent, we work in the range [0, π/4]
 	xf := float64(x)
@@ -19,8 +19,9 @@ func tan2Term[T Float](x T) T {
 
 	// Reduce to [0, π/2] using tan(x + π/2) = -cot(x)
 	sign := 1.0
+
 	if xf > math.Pi/2 {
-		xf = xf - math.Pi/2
+		xf -= math.Pi / 2
 		// tan(x + π/2) = -1/tan(x), but we'll handle this with basic reduction
 		// For simplicity, reduce to [0, π/2]
 		xf = math.Pi/2 - xf
@@ -29,6 +30,7 @@ func tan2Term[T Float](x T) T {
 
 	// Further reduce to [0, π/4] using tan(π/2 - x) = cot(x) = 1/tan(x)
 	reciprocal := false
+
 	if xf > math.Pi/4 {
 		xf = math.Pi/2 - xf
 		reciprocal = true
@@ -50,7 +52,7 @@ func tan2Term[T Float](x T) T {
 
 // cotan2Term computes cotangent (1/tan) using the 2-term tangent approximation.
 // cotan(x) = 1 / tan(x)
-// Expected accuracy: ~3.2 decimal digits for |x| < π/4
+// Expected accuracy: ~3.2 decimal digits for |x| < π/4.
 func cotan2Term[T Float](x T) T {
 	tanVal := tan2Term(x)
 	return 1.0 / tanVal
@@ -58,7 +60,7 @@ func cotan2Term[T Float](x T) T {
 
 // tan3Term computes tangent using a 3-term Taylor series approximation.
 // Taylor series: tan(x) ≈ x + x³/3 + 2x⁵/15 for x near 0
-// Expected accuracy: ~5.6 decimal digits for |x| < π/4
+// Expected accuracy: ~5.6 decimal digits for |x| < π/4.
 func tan3Term[T Float](x T) T {
 	xf := float64(x)
 
@@ -69,13 +71,15 @@ func tan3Term[T Float](x T) T {
 	}
 
 	sign := 1.0
+
 	if xf > math.Pi/2 {
-		xf = xf - math.Pi/2
+		xf -= math.Pi / 2
 		xf = math.Pi/2 - xf
 		sign = -1.0
 	}
 
 	reciprocal := false
+
 	if xf > math.Pi/4 {
 		xf = math.Pi/2 - xf
 		reciprocal = true
@@ -103,7 +107,7 @@ func cotan3Term[T Float](x T) T {
 
 // tan4Term computes tangent using a 4-term Taylor series approximation.
 // Taylor series: tan(x) ≈ x + x³/3 + 2x⁵/15 + 17x⁷/315 for x near 0
-// Expected accuracy: ~8.2 decimal digits for |x| < π/4
+// Expected accuracy: ~8.2 decimal digits for |x| < π/4.
 func tan4Term[T Float](x T) T {
 	xf := float64(x)
 
@@ -114,13 +118,15 @@ func tan4Term[T Float](x T) T {
 	}
 
 	sign := 1.0
+
 	if xf > math.Pi/2 {
-		xf = xf - math.Pi/2
+		xf -= math.Pi / 2
 		xf = math.Pi/2 - xf
 		sign = -1.0
 	}
 
 	reciprocal := false
+
 	if xf > math.Pi/4 {
 		xf = math.Pi/2 - xf
 		reciprocal = true
@@ -149,7 +155,7 @@ func cotan4Term[T Float](x T) T {
 
 // tan6Term computes tangent using a 6-term Taylor series approximation.
 // Taylor series: tan(x) ≈ x + x³/3 + 2x⁵/15 + 17x⁷/315 + 62x⁹/2835 + 1382x¹¹/155925
-// Expected accuracy: ~14 decimal digits for |x| < π/4
+// Expected accuracy: ~14 decimal digits for |x| < π/4.
 func tan6Term[T Float](x T) T {
 	xf := float64(x)
 
@@ -160,6 +166,7 @@ func tan6Term[T Float](x T) T {
 	}
 
 	sign := 1.0
+
 	if xf > math.Pi/2 {
 		xf = xf - math.Pi/2
 		xf = math.Pi/2 - xf
@@ -167,6 +174,7 @@ func tan6Term[T Float](x T) T {
 	}
 
 	reciprocal := false
+
 	if xf > math.Pi/4 {
 		xf = math.Pi/2 - xf
 		reciprocal = true

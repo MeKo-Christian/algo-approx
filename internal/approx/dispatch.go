@@ -4,6 +4,8 @@ func selectImpl[T Float](fast, balanced, high func(T) T, prec Precision) func(T)
 	switch normalizePrecision(prec) {
 	case PrecisionFast:
 		return fast
+	case PrecisionBalanced, PrecisionAuto:
+		return balanced
 	case PrecisionHigh:
 		return high
 	default:

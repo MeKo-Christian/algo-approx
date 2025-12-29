@@ -8,12 +8,15 @@ func Log[T Float](x T, prec Precision) T {
 	if x != x {
 		return x
 	}
+
 	if x == 0 {
 		return T(math.Inf(-1))
 	}
+
 	if x < 0 {
 		return T(math.NaN())
 	}
+
 	if math.IsInf(float64(x), 1) {
 		return T(math.Inf(1))
 	}
@@ -66,6 +69,7 @@ func Log[T Float](x T, prec Precision) T {
 	}
 
 	lnm := 2 * sum
+
 	return T(lnm + float64(e)*ln2)
 }
 

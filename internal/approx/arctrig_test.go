@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestArctan3Term tests the 3-term arctangent approximation for float32
+// TestArctan3Term tests the 3-term arctangent approximation for float32.
 func TestArctan3Term32(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -22,6 +22,7 @@ func TestArctan3Term32(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := arctan3Term(tt.input)
 			want := float32(math.Atan(float64(tt.input)))
+
 			diff := abs32(got - want)
 			if diff > tt.tolerance {
 				t.Errorf("arctan3Term(%v) = %v, want %v (diff: %v, tolerance: %v)",
@@ -31,7 +32,7 @@ func TestArctan3Term32(t *testing.T) {
 	}
 }
 
-// TestArctan3Term tests the 3-term arctangent approximation for float64
+// TestArctan3Term tests the 3-term arctangent approximation for float64.
 func TestArctan3Term64(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -48,6 +49,7 @@ func TestArctan3Term64(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := arctan3Term(tt.input)
 			want := math.Atan(tt.input)
+
 			diff := abs64(got - want)
 			if diff > tt.tolerance {
 				t.Errorf("arctan3Term(%v) = %v, want %v (diff: %v, tolerance: %v)",
@@ -57,7 +59,7 @@ func TestArctan3Term64(t *testing.T) {
 	}
 }
 
-// TestArctan6Term tests the 6-term arctangent approximation for float32
+// TestArctan6Term tests the 6-term arctangent approximation for float32.
 func TestArctan6Term32(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -74,6 +76,7 @@ func TestArctan6Term32(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := arctan6Term(tt.input)
 			want := float32(math.Atan(float64(tt.input)))
+
 			diff := abs32(got - want)
 			if diff > tt.tolerance {
 				t.Errorf("arctan6Term(%v) = %v, want %v (diff: %v, tolerance: %v)",
@@ -83,7 +86,7 @@ func TestArctan6Term32(t *testing.T) {
 	}
 }
 
-// TestArctan6Term tests the 6-term arctangent approximation for float64
+// TestArctan6Term tests the 6-term arctangent approximation for float64.
 func TestArctan6Term64(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -100,6 +103,7 @@ func TestArctan6Term64(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := arctan6Term(tt.input)
 			want := math.Atan(tt.input)
+
 			diff := abs64(got - want)
 			if diff > tt.tolerance {
 				t.Errorf("arctan6Term(%v) = %v, want %v (diff: %v, tolerance: %v)",
@@ -109,7 +113,7 @@ func TestArctan6Term64(t *testing.T) {
 	}
 }
 
-// TestArccotan3Term tests the 3-term arccotangent approximation for float32
+// TestArccotan3Term tests the 3-term arccotangent approximation for float32.
 func TestArccotan3Term32(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -126,6 +130,7 @@ func TestArccotan3Term32(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := arccotan3Term(tt.input)
 			want := float32(math.Pi/2 - math.Atan(float64(tt.input)))
+
 			diff := abs32(got - want)
 			if diff > tt.tolerance {
 				t.Errorf("arccotan3Term(%v) = %v, want %v (diff: %v, tolerance: %v)",
@@ -135,7 +140,7 @@ func TestArccotan3Term32(t *testing.T) {
 	}
 }
 
-// TestArccotan3Term tests the 3-term arccotangent approximation for float64
+// TestArccotan3Term tests the 3-term arccotangent approximation for float64.
 func TestArccotan3Term64(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -152,6 +157,7 @@ func TestArccotan3Term64(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := arccotan3Term(tt.input)
 			want := math.Pi/2 - math.Atan(tt.input)
+
 			diff := abs64(got - want)
 			if diff > tt.tolerance {
 				t.Errorf("arccotan3Term(%v) = %v, want %v (diff: %v, tolerance: %v)",
@@ -161,7 +167,7 @@ func TestArccotan3Term64(t *testing.T) {
 	}
 }
 
-// TestArccotan6Term tests the 6-term arccotangent approximation for float32
+// TestArccotan6Term tests the 6-term arccotangent approximation for float32.
 func TestArccotan6Term32(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -178,6 +184,7 @@ func TestArccotan6Term32(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := arccotan6Term(tt.input)
 			want := float32(math.Pi/2 - math.Atan(float64(tt.input)))
+
 			diff := abs32(got - want)
 			if diff > tt.tolerance {
 				t.Errorf("arccotan6Term(%v) = %v, want %v (diff: %v, tolerance: %v)",
@@ -187,7 +194,7 @@ func TestArccotan6Term32(t *testing.T) {
 	}
 }
 
-// TestArccotan6Term tests the 6-term arccotangent approximation for float64
+// TestArccotan6Term tests the 6-term arccotangent approximation for float64.
 func TestArccotan6Term64(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -204,6 +211,7 @@ func TestArccotan6Term64(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := arccotan6Term(tt.input)
 			want := math.Pi/2 - math.Atan(tt.input)
+
 			diff := abs64(got - want)
 			if diff > tt.tolerance {
 				t.Errorf("arccotan6Term(%v) = %v, want %v (diff: %v, tolerance: %v)",
@@ -213,7 +221,7 @@ func TestArccotan6Term64(t *testing.T) {
 	}
 }
 
-// TestArccos3Term tests the 3-term arccosine approximation for float32
+// TestArccos3Term tests the 3-term arccosine approximation for float32.
 func TestArccos3Term32(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -231,6 +239,7 @@ func TestArccos3Term32(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := arccos3Term(tt.input)
 			want := float32(math.Acos(float64(tt.input)))
+
 			diff := abs32(got - want)
 			if diff > tt.tolerance {
 				t.Errorf("arccos3Term(%v) = %v, want %v (diff: %v, tolerance: %v)",
@@ -240,7 +249,7 @@ func TestArccos3Term32(t *testing.T) {
 	}
 }
 
-// TestArccos3Term tests the 3-term arccosine approximation for float64
+// TestArccos3Term tests the 3-term arccosine approximation for float64.
 func TestArccos3Term64(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -258,6 +267,7 @@ func TestArccos3Term64(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := arccos3Term(tt.input)
 			want := math.Acos(tt.input)
+
 			diff := abs64(got - want)
 			if diff > tt.tolerance {
 				t.Errorf("arccos3Term(%v) = %v, want %v (diff: %v, tolerance: %v)",
@@ -267,7 +277,7 @@ func TestArccos3Term64(t *testing.T) {
 	}
 }
 
-// TestArccos6Term tests the 6-term arccosine approximation for float32
+// TestArccos6Term tests the 6-term arccosine approximation for float32.
 func TestArccos6Term32(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -285,6 +295,7 @@ func TestArccos6Term32(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := arccos6Term(tt.input)
 			want := float32(math.Acos(float64(tt.input)))
+
 			diff := abs32(got - want)
 			if diff > tt.tolerance {
 				t.Errorf("arccos6Term(%v) = %v, want %v (diff: %v, tolerance: %v)",
@@ -294,7 +305,7 @@ func TestArccos6Term32(t *testing.T) {
 	}
 }
 
-// TestArccos6Term tests the 6-term arccosine approximation for float64
+// TestArccos6Term tests the 6-term arccosine approximation for float64.
 func TestArccos6Term64(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -312,6 +323,7 @@ func TestArccos6Term64(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := arccos6Term(tt.input)
 			want := math.Acos(tt.input)
+
 			diff := abs64(got - want)
 			if diff > tt.tolerance {
 				t.Errorf("arccos6Term(%v) = %v, want %v (diff: %v, tolerance: %v)",
@@ -321,11 +333,12 @@ func TestArccos6Term64(t *testing.T) {
 	}
 }
 
-// Helper functions
+// Helper functions.
 func abs32(x float32) float32 {
 	if x < 0 {
 		return -x
 	}
+
 	return x
 }
 
@@ -333,5 +346,6 @@ func abs64(x float64) float64 {
 	if x < 0 {
 		return -x
 	}
+
 	return x
 }
