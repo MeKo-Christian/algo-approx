@@ -21,7 +21,7 @@ type AccuracyMetrics struct {
 // back to absolute error.
 func MeasureAccuracy[T approx.Float](samples []T, refFn, approxFn func(T) T) AccuracyMetrics {
 	if len(samples) == 0 {
-		return AccuracyMetrics{DecimalDigits: math.Inf(1)}
+		return AccuracyMetrics{DecimalDigits: math.Inf(1)} //nolint:exhaustruct
 	}
 
 	var (

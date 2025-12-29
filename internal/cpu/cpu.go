@@ -40,21 +40,21 @@ type Features struct {
 
 var (
 	// detectedFeatures holds the cached CPU features detected on this system.
-	detectedFeatures Features
+	detectedFeatures Features //nolint:gochecknoglobals
 
 	// detectOnce ensures feature detection runs exactly once, thread-safely.
-	detectOnce sync.Once
+	detectOnce sync.Once //nolint:gochecknoglobals
 
 	// detectMutex serializes access to detectOnce/detectedFeatures so ResetDetection
 	// can safely clear the cache even when tests run in parallel.
-	detectMutex sync.Mutex
+	detectMutex sync.Mutex //nolint:gochecknoglobals
 
 	// forcedFeatures allows overriding actual hardware detection for testing.
 	// When non-nil, DetectFeatures() returns this value instead of real detection.
-	forcedFeatures *Features
+	forcedFeatures *Features //nolint:gochecknoglobals
 
 	// forcedMutex protects forcedFeatures from concurrent access during testing.
-	forcedMutex sync.RWMutex
+	forcedMutex sync.RWMutex //nolint:gochecknoglobals
 )
 
 // DetectFeatures returns the CPU features available on the current system.
@@ -164,7 +164,7 @@ func ResetDetection() {
 	detectMutex.Lock()
 
 	detectOnce = sync.Once{}
-	detectedFeatures = Features{}
+	detectedFeatures = Features{} //nolint:exhaustruct
 
 	detectMutex.Unlock()
 }

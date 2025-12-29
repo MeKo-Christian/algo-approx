@@ -415,10 +415,10 @@ func csc7Term[T Float](x T) T {
 // Maps precision to term count: Fast=3, Balanced=5, High=7.
 func Sin[T Float](x T, prec Precision) T {
 	switch prec {
+	case PrecisionAuto, PrecisionBalanced:
+		return sin5Term(x)
 	case PrecisionFast:
 		return sin3Term(x)
-	case PrecisionBalanced:
-		return sin5Term(x)
 	case PrecisionHigh:
 		return sin7Term(x)
 	default:
@@ -430,10 +430,10 @@ func Sin[T Float](x T, prec Precision) T {
 // Maps precision to term count: Fast=3, Balanced=5, High=7.
 func Cos[T Float](x T, prec Precision) T {
 	switch prec {
+	case PrecisionAuto, PrecisionBalanced:
+		return cos5Term(x)
 	case PrecisionFast:
 		return cos3Term(x)
-	case PrecisionBalanced:
-		return cos5Term(x)
 	case PrecisionHigh:
 		return cos7Term(x)
 	default:
@@ -444,10 +444,10 @@ func Cos[T Float](x T, prec Precision) T {
 // Sec computes secant with the requested precision level.
 func Sec[T Float](x T, prec Precision) T {
 	switch prec {
+	case PrecisionAuto, PrecisionBalanced:
+		return sec5Term(x)
 	case PrecisionFast:
 		return sec3Term(x)
-	case PrecisionBalanced:
-		return sec5Term(x)
 	case PrecisionHigh:
 		return sec7Term(x)
 	default:
@@ -458,10 +458,10 @@ func Sec[T Float](x T, prec Precision) T {
 // Csc computes cosecant with the requested precision level.
 func Csc[T Float](x T, prec Precision) T {
 	switch prec {
+	case PrecisionAuto, PrecisionBalanced:
+		return csc5Term(x)
 	case PrecisionFast:
 		return csc3Term(x)
-	case PrecisionBalanced:
-		return csc5Term(x)
 	case PrecisionHigh:
 		return csc7Term(x)
 	default:

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-var benchSink64 float64
+var benchSink64 float64 //nolint:gochecknoglobals
 
 func BenchmarkFastSqrt_Float64(b *testing.B) {
 	b.ReportAllocs()
