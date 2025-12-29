@@ -6,6 +6,7 @@ import (
 )
 
 func TestProperty_ExpLog_RoundTrip_Float64(t *testing.T) {
+	t.Parallel()
 	// For x>0: exp(log(x)) ≈ x
 	for _, x := range []float64{1e-6, 1e-3, 0.1, 0.5, 1, 2, 10, 1e3, 1e6} {
 		got := FastExp(FastLog(x))
@@ -16,6 +17,7 @@ func TestProperty_ExpLog_RoundTrip_Float64(t *testing.T) {
 }
 
 func TestProperty_Sqrt_Square_Float64(t *testing.T) {
+	t.Parallel()
 	// For x>=0: sqrt(x)^2 ≈ x
 	for _, x := range []float64{0, 1e-12, 1e-6, 0.1, 1, 2, 10, 1e6, 1e12} {
 		y := FastSqrt(x)

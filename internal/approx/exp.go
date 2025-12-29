@@ -5,7 +5,7 @@ import "math"
 // Exp returns an approximate exponential e^x.
 func Exp[T Float](x T, prec Precision) T {
 	// Edge cases.
-	if x != x {
+	if x != x { //nolint:gocritic
 		return x
 	}
 
@@ -38,7 +38,7 @@ func Exp[T Float](x T, prec Precision) T {
 	var res float64
 
 	if k > -1023 && k < 1024 {
-		pow2k := math.Float64frombits(uint64(k+1023) << 52)
+		pow2k := math.Float64frombits(uint64(k+1023) << 52) //nolint:gosec
 		res = expr * pow2k
 	} else {
 		res = math.Ldexp(expr, k)

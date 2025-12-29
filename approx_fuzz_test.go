@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+//nolint:cyclop
 func FuzzFastSqrt(f *testing.F) {
 	seeds := []float64{-1, 0, 1, 2, 16, 1e-12, 1e12, math.Inf(1), math.NaN()}
 	for _, s := range seeds {
@@ -53,6 +54,7 @@ func FuzzFastSqrt(f *testing.F) {
 	})
 }
 
+//nolint:cyclop
 func FuzzFastInvSqrt(f *testing.F) {
 	seeds := []float64{-1, 0, 1, 2, 16, 1e-12, 1e12, math.Inf(1), math.NaN()}
 	for _, s := range seeds {

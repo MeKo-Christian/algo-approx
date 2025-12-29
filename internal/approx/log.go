@@ -3,9 +3,11 @@ package approx
 import "math"
 
 // Log returns an approximate natural logarithm ln(x).
+//
+//nolint:funlen
 func Log[T Float](x T, prec Precision) T {
 	// Edge cases.
-	if x != x {
+	if x != x { //nolint:gocritic
 		return x
 	}
 
@@ -25,7 +27,7 @@ func Log[T Float](x T, prec Precision) T {
 	// x = m * 2^e, with m in [0.5, 1).
 	xf := float64(x)
 	bits := math.Float64bits(xf)
-	expBits := int((bits>>52)&0x7ff) - 1023
+	expBits := int((bits>>52)&0x7ff) - 1023 //nolint:gosec
 	mant := bits & ((uint64(1) << 52) - 1)
 
 	// m in [1,2) initially.
@@ -48,6 +50,13 @@ func Log[T Float](x T, prec Precision) T {
 	case PrecisionFast:
 		// y + y^3/3
 		sum += p * (1.0 / 3.0)
+	case PrecisionAuto, PrecisionBalanced:
+		// y + y^3/3 + y^5/5 + y^7/7
+		sum += p * (1.0 / 3.0)
+		p *= y2
+		sum += p * (1.0 / 5.0)
+		p *= y2
+		sum += p * (1.0 / 7.0)
 	case PrecisionHigh:
 		// y + y^3/3 + y^5/5 + y^7/7 + y^9/9 + y^11/11
 		sum += p * (1.0 / 3.0)

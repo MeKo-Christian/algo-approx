@@ -23,7 +23,7 @@ func sqrtBabylonian[T Float](x T, iterations int) T {
 		return T(math.NaN())
 	}
 
-	if x != x {
+	if x != x { //nolint:gocritic
 		return x
 	}
 

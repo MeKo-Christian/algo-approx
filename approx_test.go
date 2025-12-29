@@ -195,6 +195,8 @@ func TestFastArctan(t *testing.T) {
 }
 
 // TestFastArctanPrec tests the public FastArctanPrec API with different precision levels.
+//
+//nolint:dupl
 func TestFastArctanPrec(t *testing.T) {
 	x := 0.1
 
@@ -282,6 +284,8 @@ func TestFastArccos(t *testing.T) {
 }
 
 // TestFastArccosPrec tests the public FastArccosPrec API with different precision levels.
+//
+//nolint:dupl
 func TestFastArccosPrec(t *testing.T) {
 	x := 0.5
 

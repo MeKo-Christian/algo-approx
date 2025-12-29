@@ -72,6 +72,8 @@ func TestQueryFunctions(t *testing.T) {
 }
 
 // TestForcedFeatures tests that SetForcedFeatures overrides detection.
+//
+//nolint:gocognit,cyclop
 func TestForcedFeatures(t *testing.T) {
 	// Not parallel: tests manipulate global detection state.
 
@@ -80,7 +82,7 @@ func TestForcedFeatures(t *testing.T) {
 		// Not parallel: tests manipulate global detection state.
 		defer ResetDetection()
 
-		SetForcedFeatures(Features{
+		SetForcedFeatures(Features{ //nolint:exhaustruct
 			HasSSE2:      true,
 			Architecture: "amd64",
 		})
@@ -116,7 +118,7 @@ func TestForcedFeatures(t *testing.T) {
 		// Not parallel: tests manipulate global detection state.
 		defer ResetDetection()
 
-		SetForcedFeatures(Features{
+		SetForcedFeatures(Features{ //nolint:exhaustruct
 			HasSSE2:      true,
 			HasSSE3:      true,
 			HasSSSE3:     true,
@@ -160,7 +162,7 @@ func TestForcedFeatures(t *testing.T) {
 		// Not parallel: tests manipulate global detection state.
 		defer ResetDetection()
 
-		SetForcedFeatures(Features{
+		SetForcedFeatures(Features{ //nolint:exhaustruct
 			HasNEON:      true,
 			Architecture: "arm64",
 		})
@@ -184,7 +186,7 @@ func TestForcedFeatures(t *testing.T) {
 		// Not parallel: tests manipulate global detection state.
 		defer ResetDetection()
 
-		SetForcedFeatures(Features{
+		SetForcedFeatures(Features{ //nolint:exhaustruct
 			HasAVX2:      true,
 			ForceGeneric: true,
 			Architecture: "amd64",
@@ -206,7 +208,7 @@ func TestResetDetection(t *testing.T) {
 	// Not parallel: tests manipulate global detection state.
 
 	// Set forced features
-	SetForcedFeatures(Features{
+	SetForcedFeatures(Features{ //nolint:exhaustruct
 		HasAVX2:      true,
 		Architecture: "amd64",
 	})
@@ -302,6 +304,8 @@ func TestDetectionCaching(t *testing.T) {
 }
 
 // TestFeaturesStructFields verifies the Features struct has expected fields.
+//
+//nolint:cyclop
 func TestFeaturesStructFields(t *testing.T) {
 	features := Features{
 		HasSSE2:      true,

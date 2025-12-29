@@ -168,7 +168,7 @@ func tan6Term[T Float](x T) T {
 	sign := 1.0
 
 	if xf > math.Pi/2 {
-		xf = xf - math.Pi/2
+		xf -= math.Pi / 2
 		xf = math.Pi/2 - xf
 		sign = -1.0
 	}
@@ -210,10 +210,10 @@ func cotan6Term[T Float](x T) T {
 //   - PrecisionHigh (6): ~14 decimal digits
 func Tan[T Float](x T, prec Precision) T {
 	switch prec {
+	case PrecisionAuto, PrecisionBalanced:
+		return tan3Term(x)
 	case PrecisionFast:
 		return tan2Term(x)
-	case PrecisionBalanced:
-		return tan3Term(x)
 	case PrecisionHigh:
 		return tan6Term(x)
 	default:
@@ -224,10 +224,10 @@ func Tan[T Float](x T, prec Precision) T {
 // Cotan computes cotangent with precision-based term selection.
 func Cotan[T Float](x T, prec Precision) T {
 	switch prec {
+	case PrecisionAuto, PrecisionBalanced:
+		return cotan3Term(x)
 	case PrecisionFast:
 		return cotan2Term(x)
-	case PrecisionBalanced:
-		return cotan3Term(x)
 	case PrecisionHigh:
 		return cotan6Term(x)
 	default:
