@@ -30,6 +30,7 @@ func TestPower32(t *testing.T) {
 				t.Errorf("Power(%v, %v) = NaN", tt.base, tt.exponent)
 				return
 			}
+
 			if diff := math.Abs(float64(got - tt.want)); diff > float64(tt.tolerance) {
 				t.Errorf("Power(%v, %v) = %v, want %v (diff = %v, tolerance = %v)",
 					tt.base, tt.exponent, got, tt.want, diff, tt.tolerance)
@@ -63,6 +64,7 @@ func TestPower64(t *testing.T) {
 				t.Errorf("Power(%v, %v) = NaN", tt.base, tt.exponent)
 				return
 			}
+
 			if diff := math.Abs(got - tt.want); diff > tt.tolerance {
 				t.Errorf("Power(%v, %v) = %v, want %v (diff = %v, tolerance = %v)",
 					tt.base, tt.exponent, got, tt.want, diff, tt.tolerance)
@@ -94,6 +96,7 @@ func TestRoot32(t *testing.T) {
 				t.Errorf("Root(%v, %v) = NaN", tt.value, tt.n)
 				return
 			}
+
 			if diff := math.Abs(float64(got - tt.want)); diff > float64(tt.tolerance) {
 				t.Errorf("Root(%v, %v) = %v, want %v (diff = %v, tolerance = %v)",
 					tt.value, tt.n, got, tt.want, diff, tt.tolerance)
@@ -125,6 +128,7 @@ func TestRoot64(t *testing.T) {
 				t.Errorf("Root(%v, %v) = NaN", tt.value, tt.n)
 				return
 			}
+
 			if diff := math.Abs(got - tt.want); diff > tt.tolerance {
 				t.Errorf("Root(%v, %v) = %v, want %v (diff = %v, tolerance = %v)",
 					tt.value, tt.n, got, tt.want, diff, tt.tolerance)
@@ -160,6 +164,7 @@ func TestIntPower32(t *testing.T) {
 				t.Errorf("IntPower(%v, %v) = NaN", tt.base, tt.exponent)
 				return
 			}
+
 			if diff := math.Abs(float64(got - tt.want)); diff > float64(tt.tolerance) {
 				t.Errorf("IntPower(%v, %v) = %v, want %v (diff = %v, tolerance = %v)",
 					tt.base, tt.exponent, got, tt.want, diff, tt.tolerance)
@@ -196,6 +201,7 @@ func TestIntPower64(t *testing.T) {
 				t.Errorf("IntPower(%v, %v) = NaN", tt.base, tt.exponent)
 				return
 			}
+
 			if diff := math.Abs(got - tt.want); diff > tt.tolerance {
 				t.Errorf("IntPower(%v, %v) = %v, want %v (diff = %v, tolerance = %v)",
 					tt.base, tt.exponent, got, tt.want, diff, tt.tolerance)

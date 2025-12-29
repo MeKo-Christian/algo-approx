@@ -50,7 +50,7 @@ func FastExp64(x float64) float64 { return FastExp[float64](x) }
 func FastSin[T Float](x T) T { return FastSinPrec(x, PrecisionAuto) }
 
 // FastSinPrec returns an approximate sine using the requested precision.
-// Fast=3-term (~3.2 digits), Balanced=5-term (~7.3 digits), High=7-term (~12.1 digits)
+// Fast=3-term (~3.2 digits), Balanced=5-term (~7.3 digits), High=7-term (~12.1 digits).
 func FastSinPrec[T Float](x T, prec Precision) T {
 	return iapprox.Sin(x, iapprox.Precision(normalizePrecision(prec)))
 }
@@ -62,7 +62,7 @@ func FastSin64(x float64) float64 { return FastSin[float64](x) }
 func FastCos[T Float](x T) T { return FastCosPrec(x, PrecisionAuto) }
 
 // FastCosPrec returns an approximate cosine using the requested precision.
-// Fast=3-term (~3.2 digits), Balanced=5-term (~7.3 digits), High=7-term (~12.1 digits)
+// Fast=3-term (~3.2 digits), Balanced=5-term (~7.3 digits), High=7-term (~12.1 digits).
 func FastCosPrec[T Float](x T, prec Precision) T {
 	return iapprox.Cos(x, iapprox.Precision(normalizePrecision(prec)))
 }
@@ -118,7 +118,7 @@ func FastCotan64(x float64) float64 { return FastCotan[float64](x) }
 func FastArctan[T Float](x T) T { return FastArctanPrec(x, PrecisionAuto) }
 
 // FastArctanPrec returns an approximate arctangent using the requested precision.
-// Fast/Balanced=3-term (~6.6 digits), High=6-term (~13.7 digits)
+// Fast/Balanced=3-term (~6.6 digits), High=6-term (~13.7 digits).
 func FastArctanPrec[T Float](x T, prec Precision) T {
 	return iapprox.Arctan(x, iapprox.Precision(normalizePrecision(prec)))
 }
@@ -130,7 +130,7 @@ func FastArctan64(x float64) float64 { return FastArctan[float64](x) }
 func FastArccotan[T Float](x T) T { return FastArccotanPrec(x, PrecisionAuto) }
 
 // FastArccotanPrec returns an approximate arccotangent using the requested precision.
-// Fast/Balanced=3-term (~6.6 digits), High=6-term (~13.7 digits)
+// Fast/Balanced=3-term (~6.6 digits), High=6-term (~13.7 digits).
 func FastArccotanPrec[T Float](x T, prec Precision) T {
 	return iapprox.Arccotan(x, iapprox.Precision(normalizePrecision(prec)))
 }
@@ -142,7 +142,7 @@ func FastArccotan64(x float64) float64 { return FastArccotan[float64](x) }
 func FastArccos[T Float](x T) T { return FastArccosPrec(x, PrecisionAuto) }
 
 // FastArccosPrec returns an approximate arccosine using the requested precision.
-// Fast/Balanced=3-term (~6.6 digits), High=6-term (~13.7 digits)
+// Fast/Balanced=3-term (~6.6 digits), High=6-term (~13.7 digits).
 func FastArccosPrec[T Float](x T, prec Precision) T {
 	return iapprox.Arccos(x, iapprox.Precision(normalizePrecision(prec)))
 }
@@ -151,7 +151,7 @@ func FastArccos32(x float32) float32 { return FastArccos[float32](x) }
 func FastArccos64(x float64) float64 { return FastArccos[float64](x) }
 
 // FastPower returns an approximate power base^exponent.
-// Uses exp/log composition: base^exponent = exp(exponent * ln(base))
+// Uses exp/log composition: base^exponent = exp(exponent * ln(base)).
 func FastPower[T Float](base, exponent T) T {
 	return iapprox.Power(base, exponent)
 }
@@ -160,7 +160,7 @@ func FastPower32(base, exponent float32) float32 { return FastPower[float32](bas
 func FastPower64(base, exponent float64) float64 { return FastPower[float64](base, exponent) }
 
 // FastRoot returns an approximate nth root of value.
-// Uses the identity: root(value, n) = value^(1/n)
+// Uses the identity: root(value, n) = value^(1/n).
 func FastRoot[T Float](value T, n int) T {
 	return iapprox.Root(value, n)
 }

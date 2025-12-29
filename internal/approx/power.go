@@ -5,7 +5,7 @@ import (
 )
 
 // Power computes base^exponent using the exp/log composition.
-// This function uses the identity: base^exponent = exp(exponent * ln(base))
+// This function uses the identity: base^exponent = exp(exponent * ln(base)).
 func Power[T Float](base, exponent T) T {
 	// Handle special cases
 	if base <= 0 {
@@ -17,9 +17,11 @@ func Power[T Float](base, exponent T) T {
 		if exponent == 0 {
 			return 1
 		}
+
 		if exponent > 0 {
 			return 0
 		}
+
 		return T(math.Inf(1)) // 0^negative = infinity
 	}
 
@@ -37,7 +39,7 @@ func Power[T Float](base, exponent T) T {
 }
 
 // Root computes the nth root of value using Power.
-// This function uses the identity: root(value, n) = value^(1/n)
+// This function uses the identity: root(value, n) = value^(1/n).
 func Root[T Float](value T, n int) T {
 	if n == 0 {
 		return T(math.NaN())
@@ -82,6 +84,7 @@ func IntPower[T Float](base T, exponent int) T {
 		if exponent > 0 {
 			return 0
 		}
+
 		return T(math.Inf(1))
 	}
 
@@ -99,6 +102,7 @@ func IntPower[T Float](base T, exponent int) T {
 		if n%2 == 1 {
 			result *= currentBase
 		}
+
 		currentBase *= currentBase
 		n /= 2
 	}

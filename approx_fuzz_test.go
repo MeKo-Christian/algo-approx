@@ -19,26 +19,34 @@ func FuzzFastSqrt(f *testing.F) {
 			if !math.IsNaN(float64(got)) {
 				t.Fatalf("sqrt(NaN) expected NaN")
 			}
+
 			return
 		}
+
 		if x < 0 {
 			if !math.IsNaN(float64(got)) {
 				t.Fatalf("sqrt(negative) expected NaN")
 			}
+
 			return
 		}
+
 		if x == 0 {
 			if got != 0 {
 				t.Fatalf("sqrt(0) expected 0")
 			}
+
 			return
 		}
+
 		if math.IsInf(x, 1) {
 			if !math.IsInf(float64(got), 1) {
 				t.Fatalf("sqrt(+Inf) expected +Inf")
 			}
+
 			return
 		}
+
 		if !math.IsNaN(float64(got)) && float64(got) < 0 {
 			t.Fatalf("sqrt(x) should be non-negative")
 		}
@@ -59,26 +67,34 @@ func FuzzFastInvSqrt(f *testing.F) {
 			if !math.IsNaN(float64(got)) {
 				t.Fatalf("invsqrt(NaN) expected NaN")
 			}
+
 			return
 		}
+
 		if x < 0 {
 			if !math.IsNaN(float64(got)) {
 				t.Fatalf("invsqrt(negative) expected NaN")
 			}
+
 			return
 		}
+
 		if x == 0 {
 			if !math.IsInf(float64(got), 1) {
 				t.Fatalf("invsqrt(0) expected +Inf")
 			}
+
 			return
 		}
+
 		if math.IsInf(x, 1) {
 			if got != 0 {
 				t.Fatalf("invsqrt(+Inf) expected 0")
 			}
+
 			return
 		}
+
 		if !math.IsNaN(float64(got)) && float64(got) <= 0 {
 			t.Fatalf("invsqrt(x) should be positive for x>0")
 		}
@@ -99,24 +115,31 @@ func FuzzFastLog(f *testing.F) {
 			if !math.IsNaN(float64(got)) {
 				t.Fatalf("log(NaN) expected NaN")
 			}
+
 			return
 		}
+
 		if x < 0 {
 			if !math.IsNaN(float64(got)) {
 				t.Fatalf("log(negative) expected NaN")
 			}
+
 			return
 		}
+
 		if x == 0 {
 			if !math.IsInf(float64(got), -1) {
 				t.Fatalf("log(0) expected -Inf")
 			}
+
 			return
 		}
+
 		if math.IsInf(x, 1) {
 			if !math.IsInf(float64(got), 1) {
 				t.Fatalf("log(+Inf) expected +Inf")
 			}
+
 			return
 		}
 	})
@@ -136,20 +159,26 @@ func FuzzFastExp(f *testing.F) {
 			if !math.IsNaN(float64(got)) {
 				t.Fatalf("exp(NaN) expected NaN")
 			}
+
 			return
 		}
+
 		if math.IsInf(x, -1) {
 			if got != 0 {
 				t.Fatalf("exp(-Inf) expected 0")
 			}
+
 			return
 		}
+
 		if math.IsInf(x, 1) {
 			if !math.IsInf(float64(got), 1) {
 				t.Fatalf("exp(+Inf) expected +Inf")
 			}
+
 			return
 		}
+
 		if !math.IsNaN(float64(got)) && float64(got) < 0 {
 			t.Fatalf("exp(x) should be >= 0")
 		}

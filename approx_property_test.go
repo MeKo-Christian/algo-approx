@@ -19,6 +19,7 @@ func TestProperty_Sqrt_Square_Float64(t *testing.T) {
 	// For x>=0: sqrt(x)^2 ≈ x
 	for _, x := range []float64{0, 1e-12, 1e-6, 0.1, 1, 2, 10, 1e6, 1e12} {
 		y := FastSqrt(x)
+
 		got := float64(y * y)
 		if !closeRel(got, x, 2e-2) {
 			t.Fatalf("sqrt(%g)^2 got %g", x, got)
@@ -43,20 +44,23 @@ func TestProperty_Monotonicity_Sqrt_Float64(t *testing.T) {
 		if cur < prev {
 			t.Fatalf("sqrt not monotone: sqrt(%g)=%g < prev=%g", x, cur, prev)
 		}
+
 		prev = cur
 	}
 }
 
 func closeRel(got, ref, tol float64) bool {
 	d := math.Abs(got - ref)
+
 	den := math.Abs(ref)
 	if den == 0 {
 		return d <= tol
 	}
+
 	return d/den <= tol
 }
 
-// TestTrigIdentity_SinSquaredPlusCosSquared tests sin²(x) + cos²(x) ≈ 1
+// TestTrigIdentity_SinSquaredPlusCosSquared tests sin²(x) + cos²(x) ≈ 1.
 func TestTrigIdentity_SinSquaredPlusCosSquared(t *testing.T) {
 	testValues := []float64{
 		0, math.Pi / 6, math.Pi / 4, math.Pi / 3, math.Pi / 2,
@@ -77,7 +81,7 @@ func TestTrigIdentity_SinSquaredPlusCosSquared(t *testing.T) {
 }
 
 // TestTrigIdentity_SinSquaredPlusCosSquared_NearPi tests the identity near π
-// where approximation errors can accumulate
+// where approximation errors can accumulate.
 func TestTrigIdentity_SinSquaredPlusCosSquared_NearPi(t *testing.T) {
 	x := math.Pi
 	sinVal := FastSin(x)
@@ -90,7 +94,7 @@ func TestTrigIdentity_SinSquaredPlusCosSquared_NearPi(t *testing.T) {
 	}
 }
 
-// TestTrigIdentity_SecIsCosReciprocal tests sec(x) ≈ 1/cos(x)
+// TestTrigIdentity_SecIsCosReciprocal tests sec(x) ≈ 1/cos(x).
 func TestTrigIdentity_SecIsCosReciprocal(t *testing.T) {
 	testValues := []float64{0, math.Pi / 6, math.Pi / 4, math.Pi / 3}
 
@@ -105,7 +109,7 @@ func TestTrigIdentity_SecIsCosReciprocal(t *testing.T) {
 	}
 }
 
-// TestTrigIdentity_CscIsSinReciprocal tests csc(x) ≈ 1/sin(x)
+// TestTrigIdentity_CscIsSinReciprocal tests csc(x) ≈ 1/sin(x).
 func TestTrigIdentity_CscIsSinReciprocal(t *testing.T) {
 	testValues := []float64{math.Pi / 6, math.Pi / 4, math.Pi / 3, math.Pi / 2}
 
@@ -120,7 +124,7 @@ func TestTrigIdentity_CscIsSinReciprocal(t *testing.T) {
 	}
 }
 
-// TestTrigSymmetry_SinIsOdd tests sin(-x) ≈ -sin(x)
+// TestTrigSymmetry_SinIsOdd tests sin(-x) ≈ -sin(x).
 func TestTrigSymmetry_SinIsOdd(t *testing.T) {
 	testValues := []float64{math.Pi / 6, math.Pi / 4, math.Pi / 3, math.Pi / 2}
 
@@ -134,7 +138,7 @@ func TestTrigSymmetry_SinIsOdd(t *testing.T) {
 	}
 }
 
-// TestTrigSymmetry_CosIsEven tests cos(-x) ≈ cos(x)
+// TestTrigSymmetry_CosIsEven tests cos(-x) ≈ cos(x).
 func TestTrigSymmetry_CosIsEven(t *testing.T) {
 	testValues := []float64{math.Pi / 6, math.Pi / 4, math.Pi / 3, math.Pi / 2}
 
@@ -148,10 +152,10 @@ func TestTrigSymmetry_CosIsEven(t *testing.T) {
 	}
 }
 
-// TestTangentIdentity tests the identity: tan(x) * cotan(x) ≈ 1
+// TestTangentIdentity tests the identity: tan(x) * cotan(x) ≈ 1.
 func TestTangentIdentity(t *testing.T) {
 	// Test in range where both tan and cotan are well-behaved
-	for i := 0; i < 20; i++ {
+	for i := range 20 {
 		x := float64(i) * math.Pi / 24 // 0 to 5π/6 in steps of π/24
 		if x == 0 {
 			continue // Skip zero (cotan undefined)
@@ -169,7 +173,7 @@ func TestTangentIdentity(t *testing.T) {
 	}
 }
 
-// TestTangentReciprocal tests: cotan(x) ≈ 1/tan(x)
+// TestTangentReciprocal tests: cotan(x) ≈ 1/tan(x).
 func TestTangentReciprocal(t *testing.T) {
 	for i := 1; i < 20; i++ {
 		x := float64(i) * math.Pi / 24
@@ -185,9 +189,9 @@ func TestTangentReciprocal(t *testing.T) {
 	}
 }
 
-// TestTangentPeriodicityProperty tests: tan(x + π) ≈ tan(x)
+// TestTangentPeriodicityProperty tests: tan(x + π) ≈ tan(x).
 func TestTangentPeriodicityProperty(t *testing.T) {
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		x := float64(i) * math.Pi / 12
 
 		tanX := FastTan(x)
@@ -201,7 +205,7 @@ func TestTangentPeriodicityProperty(t *testing.T) {
 	}
 }
 
-// TestArctanArccotanReciprocal verifies that arctan(x) + arccotan(x) ≈ π/2
+// TestArctanArccotanReciprocal verifies that arctan(x) + arccotan(x) ≈ π/2.
 func TestArctanArccotanReciprocal(t *testing.T) {
 	tolerance := 0.0001
 
@@ -222,7 +226,7 @@ func TestArctanArccotanReciprocal(t *testing.T) {
 	}
 }
 
-// TestArccosComplementarity verifies that arccos(x) + arcsin(x) ≈ π/2 for small x
+// TestArccosComplementarity verifies that arccos(x) + arcsin(x) ≈ π/2 for small x.
 func TestArccosComplementarity(t *testing.T) {
 	tolerance := 0.002
 
@@ -243,7 +247,7 @@ func TestArccosComplementarity(t *testing.T) {
 	}
 }
 
-// TestInverseTrigRoundTrip tests that tan(arctan(x)) ≈ x for small x
+// TestInverseTrigRoundTrip tests that tan(arctan(x)) ≈ x for small x.
 func TestInverseTrigRoundTrip(t *testing.T) {
 	tolerance := 0.0001
 
@@ -261,7 +265,8 @@ func TestInverseTrigRoundTrip(t *testing.T) {
 		}
 	}
 }
-// TestPowerRootIdentity tests the identity: root(x^n, n) ≈ x
+
+// TestPowerRootIdentity tests the identity: root(x^n, n) ≈ x.
 func TestPowerRootIdentity(t *testing.T) {
 	tolerance := 1e-4
 
@@ -290,7 +295,7 @@ func TestPowerRootIdentity(t *testing.T) {
 	}
 }
 
-// TestIntPowerVsPower tests that IntPower and Power give similar results for integer exponents
+// TestIntPowerVsPower tests that IntPower and Power give similar results for integer exponents.
 func TestIntPowerVsPower(t *testing.T) {
 	tests := []struct {
 		base      float64
@@ -299,7 +304,7 @@ func TestIntPowerVsPower(t *testing.T) {
 	}{
 		{2.0, 3, 1e-3},
 		{3.0, 2, 1e-3},
-		{2.0, 10, 0.2},    // Higher exponents accumulate more error
+		{2.0, 10, 0.2}, // Higher exponents accumulate more error
 		{1.5, 5, 0.01},
 	}
 
@@ -315,7 +320,7 @@ func TestIntPowerVsPower(t *testing.T) {
 	}
 }
 
-// TestPowerExponentLaws tests power laws: (a^b)^c = a^(b*c)
+// TestPowerExponentLaws tests power laws: (a^b)^c = a^(b*c).
 func TestPowerExponentLaws(t *testing.T) {
 	tolerance := 1e-2
 
@@ -348,7 +353,7 @@ func TestPowerExponentLaws(t *testing.T) {
 	}
 }
 
-// TestRootSquareIdentity tests: sqrt(x) = root(x, 2)
+// TestRootSquareIdentity tests: sqrt(x) = root(x, 2).
 func TestRootSquareIdentity(t *testing.T) {
 	tolerance := 1e-10
 
@@ -366,7 +371,7 @@ func TestRootSquareIdentity(t *testing.T) {
 	}
 }
 
-// TestIntPowerNegativeExponent tests: x^(-n) = 1/(x^n)
+// TestIntPowerNegativeExponent tests: x^(-n) = 1/(x^n).
 func TestIntPowerNegativeExponent(t *testing.T) {
 	tolerance := 1e-14
 

@@ -48,8 +48,10 @@ func normalizePrecision(p Precision) Precision {
 	if p == PrecisionAuto {
 		return PrecisionBalanced
 	}
+
 	if !p.IsValid() {
 		return PrecisionBalanced
 	}
+
 	return p
 }

@@ -6,7 +6,7 @@ import (
 )
 
 // TestTan2Term tests the 2-term Taylor series tangent approximation.
-// According to PLAN.md: ~3.2 digits accuracy, range [0, π/4]
+// According to PLAN.md: ~3.2 digits accuracy, range [0, π/4].
 func TestTan2Term(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -84,7 +84,7 @@ func TestCotan2Term(t *testing.T) {
 }
 
 // TestTan3Term tests the 3-term Taylor series tangent approximation.
-// According to PLAN.md: ~5.6 digits accuracy
+// According to PLAN.md: ~5.6 digits accuracy.
 func TestTan3Term(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -162,7 +162,7 @@ func TestCotan3Term(t *testing.T) {
 }
 
 // TestTan4Term tests the 4-term Taylor series tangent approximation.
-// According to PLAN.md: ~8.2 digits accuracy
+// According to PLAN.md: ~8.2 digits accuracy.
 func TestTan4Term(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -240,7 +240,7 @@ func TestCotan4Term(t *testing.T) {
 }
 
 // TestTan6Term tests the 6-term Taylor series tangent approximation.
-// According to PLAN.md: ~14 digits accuracy
+// According to PLAN.md: ~14 digits accuracy.
 func TestTan6Term(t *testing.T) {
 	tests := []struct {
 		name      string
