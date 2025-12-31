@@ -6,6 +6,8 @@ import (
 )
 
 func TestInvSqrtAgainstMath_Float64(t *testing.T) {
+	t.Parallel()
+
 	cases := []float64{1, 2, 4, 16, 1e-12, 1e-6, 1e6, 1e12}
 	for _, x := range cases {
 		got := InvSqrt[float64](x, PrecisionBalanced)
@@ -18,6 +20,8 @@ func TestInvSqrtAgainstMath_Float64(t *testing.T) {
 }
 
 func TestInvSqrtEdgeCases(t *testing.T) {
+	t.Parallel()
+
 	if !math.IsInf(float64(InvSqrt[float64](0, PrecisionBalanced)), 1) {
 		t.Fatalf("expected +Inf for zero")
 	}

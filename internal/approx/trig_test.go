@@ -7,6 +7,8 @@ import (
 
 // TestSin3Term tests the 3-term Taylor series approximation for sine.
 func TestSin3Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float64
@@ -23,6 +25,8 @@ func TestSin3Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := sin3Term(tt.input)
 			if math.Abs(got-tt.want) > tt.delta {
 				t.Errorf("sin3Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)
@@ -33,6 +37,8 @@ func TestSin3Term(t *testing.T) {
 
 // TestSin3TermFloat32 tests the 3-term sine approximation with float32.
 func TestSin3TermFloat32(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float32
@@ -46,6 +52,8 @@ func TestSin3TermFloat32(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := sin3Term(tt.input)
 			if float32(math.Abs(float64(got-tt.want))) > tt.delta {
 				t.Errorf("sin3Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)
@@ -56,6 +64,8 @@ func TestSin3TermFloat32(t *testing.T) {
 
 // TestCos3Term tests the 3-term Taylor series approximation for cosine.
 func TestCos3Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float64
@@ -72,6 +82,8 @@ func TestCos3Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := cos3Term(tt.input)
 			if math.Abs(got-tt.want) > tt.delta {
 				t.Errorf("cos3Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)
@@ -82,6 +94,8 @@ func TestCos3Term(t *testing.T) {
 
 // TestCos3TermFloat32 tests the 3-term cosine approximation with float32.
 func TestCos3TermFloat32(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float32
@@ -95,6 +109,8 @@ func TestCos3TermFloat32(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := cos3Term(tt.input)
 			if float32(math.Abs(float64(got-tt.want))) > tt.delta {
 				t.Errorf("cos3Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)
@@ -105,6 +121,8 @@ func TestCos3TermFloat32(t *testing.T) {
 
 // TestSec3Term tests the 3-term secant approximation (sec = 1/cos).
 func TestSec3Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float64
@@ -119,6 +137,8 @@ func TestSec3Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := sec3Term(tt.input)
 			if math.Abs(got-tt.want) > tt.delta {
 				t.Errorf("sec3Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)
@@ -129,6 +149,8 @@ func TestSec3Term(t *testing.T) {
 
 // TestCsc3Term tests the 3-term cosecant approximation (csc = 1/sin).
 func TestCsc3Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float64
@@ -143,6 +165,8 @@ func TestCsc3Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := csc3Term(tt.input)
 			if math.Abs(got-tt.want) > tt.delta {
 				t.Errorf("csc3Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)
@@ -152,7 +176,11 @@ func TestCsc3Term(t *testing.T) {
 }
 
 // TestSin4Term tests the 4-term Taylor series approximation for sine.
+//
+//nolint:dupl
 func TestSin4Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float64
@@ -168,6 +196,8 @@ func TestSin4Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := sin4Term(tt.input)
 			if math.Abs(got-tt.want) > tt.delta {
 				t.Errorf("sin4Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)
@@ -178,6 +208,8 @@ func TestSin4Term(t *testing.T) {
 
 // TestCos4Term tests the 4-term Taylor series approximation for cosine.
 func TestCos4Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float64
@@ -193,6 +225,8 @@ func TestCos4Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := cos4Term(tt.input)
 			if math.Abs(got-tt.want) > tt.delta {
 				t.Errorf("cos4Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)
@@ -203,6 +237,8 @@ func TestCos4Term(t *testing.T) {
 
 // TestSec4Term tests the 4-term secant approximation.
 func TestSec4Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float64
@@ -216,6 +252,8 @@ func TestSec4Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := sec4Term(tt.input)
 			if math.Abs(got-tt.want) > tt.delta {
 				t.Errorf("sec4Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)
@@ -226,6 +264,8 @@ func TestSec4Term(t *testing.T) {
 
 // TestCsc4Term tests the 4-term cosecant approximation.
 func TestCsc4Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float64
@@ -239,6 +279,8 @@ func TestCsc4Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := csc4Term(tt.input)
 			if math.Abs(got-tt.want) > tt.delta {
 				t.Errorf("csc4Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)
@@ -248,7 +290,11 @@ func TestCsc4Term(t *testing.T) {
 }
 
 // TestSin5Term tests the 5-term Taylor series approximation for sine.
+//
+//nolint:dupl
 func TestSin5Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float64
@@ -264,6 +310,8 @@ func TestSin5Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := sin5Term(tt.input)
 			if math.Abs(got-tt.want) > tt.delta {
 				t.Errorf("sin5Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)
@@ -274,6 +322,8 @@ func TestSin5Term(t *testing.T) {
 
 // TestCos5Term tests the 5-term Taylor series approximation for cosine.
 func TestCos5Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float64
@@ -289,6 +339,8 @@ func TestCos5Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := cos5Term(tt.input)
 			if math.Abs(got-tt.want) > tt.delta {
 				t.Errorf("cos5Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)
@@ -299,6 +351,8 @@ func TestCos5Term(t *testing.T) {
 
 // TestSec5Term tests the 5-term secant approximation.
 func TestSec5Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float64
@@ -312,6 +366,8 @@ func TestSec5Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := sec5Term(tt.input)
 			if math.Abs(got-tt.want) > tt.delta {
 				t.Errorf("sec5Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)
@@ -322,6 +378,8 @@ func TestSec5Term(t *testing.T) {
 
 // TestCsc5Term tests the 5-term cosecant approximation.
 func TestCsc5Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float64
@@ -335,6 +393,8 @@ func TestCsc5Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := csc5Term(tt.input)
 			if math.Abs(got-tt.want) > tt.delta {
 				t.Errorf("csc5Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)
@@ -344,7 +404,11 @@ func TestCsc5Term(t *testing.T) {
 }
 
 // TestSin6Term tests the 6-term Taylor series approximation for sine.
+//
+//nolint:dupl
 func TestSin6Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float64
@@ -360,6 +424,8 @@ func TestSin6Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := sin6Term(tt.input)
 			if math.Abs(got-tt.want) > tt.delta {
 				t.Errorf("sin6Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)
@@ -370,6 +436,8 @@ func TestSin6Term(t *testing.T) {
 
 // TestCos6Term tests the 6-term Taylor series approximation for cosine.
 func TestCos6Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float64
@@ -385,6 +453,8 @@ func TestCos6Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := cos6Term(tt.input)
 			if math.Abs(got-tt.want) > tt.delta {
 				t.Errorf("cos6Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)
@@ -395,6 +465,8 @@ func TestCos6Term(t *testing.T) {
 
 // TestSec6Term tests the 6-term secant approximation.
 func TestSec6Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float64
@@ -408,6 +480,8 @@ func TestSec6Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := sec6Term(tt.input)
 			if math.Abs(got-tt.want) > tt.delta {
 				t.Errorf("sec6Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)
@@ -418,6 +492,8 @@ func TestSec6Term(t *testing.T) {
 
 // TestCsc6Term tests the 6-term cosecant approximation.
 func TestCsc6Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float64
@@ -431,6 +507,8 @@ func TestCsc6Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := csc6Term(tt.input)
 			if math.Abs(got-tt.want) > tt.delta {
 				t.Errorf("csc6Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)
@@ -440,7 +518,11 @@ func TestCsc6Term(t *testing.T) {
 }
 
 // TestSin7Term tests the 7-term Taylor series approximation for sine (~12.1 digits).
+//
+//nolint:dupl
 func TestSin7Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float64
@@ -456,6 +538,8 @@ func TestSin7Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := sin7Term(tt.input)
 			if math.Abs(got-tt.want) > tt.delta {
 				t.Errorf("sin7Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)
@@ -466,6 +550,8 @@ func TestSin7Term(t *testing.T) {
 
 // TestCos7Term tests the 7-term Taylor series approximation for cosine.
 func TestCos7Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float64
@@ -481,6 +567,8 @@ func TestCos7Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := cos7Term(tt.input)
 			if math.Abs(got-tt.want) > tt.delta {
 				t.Errorf("cos7Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)
@@ -491,6 +579,8 @@ func TestCos7Term(t *testing.T) {
 
 // TestSec7Term tests the 7-term secant approximation.
 func TestSec7Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float64
@@ -504,6 +594,8 @@ func TestSec7Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := sec7Term(tt.input)
 			if math.Abs(got-tt.want) > tt.delta {
 				t.Errorf("sec7Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)
@@ -514,6 +606,8 @@ func TestSec7Term(t *testing.T) {
 
 // TestCsc7Term tests the 7-term cosecant approximation.
 func TestCsc7Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input float64
@@ -527,6 +621,8 @@ func TestCsc7Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := csc7Term(tt.input)
 			if math.Abs(got-tt.want) > tt.delta {
 				t.Errorf("csc7Term(%v) = %v, want %v (±%v)", tt.input, got, tt.want, tt.delta)

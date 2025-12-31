@@ -6,6 +6,8 @@ import (
 )
 
 func TestPower32(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		base      float32
@@ -25,6 +27,8 @@ func TestPower32(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := Power(tt.base, tt.exponent)
 			if math.IsNaN(float64(got)) {
 				t.Errorf("Power(%v, %v) = NaN", tt.base, tt.exponent)
@@ -40,6 +44,8 @@ func TestPower32(t *testing.T) {
 }
 
 func TestPower64(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		base      float64
@@ -59,6 +65,8 @@ func TestPower64(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := Power(tt.base, tt.exponent)
 			if math.IsNaN(got) {
 				t.Errorf("Power(%v, %v) = NaN", tt.base, tt.exponent)
@@ -74,6 +82,8 @@ func TestPower64(t *testing.T) {
 }
 
 func TestRoot32(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		value     float32
@@ -91,6 +101,8 @@ func TestRoot32(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := Root(tt.value, tt.n)
 			if math.IsNaN(float64(got)) {
 				t.Errorf("Root(%v, %v) = NaN", tt.value, tt.n)
@@ -106,6 +118,8 @@ func TestRoot32(t *testing.T) {
 }
 
 func TestRoot64(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		value     float64
@@ -123,6 +137,8 @@ func TestRoot64(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := Root(tt.value, tt.n)
 			if math.IsNaN(got) {
 				t.Errorf("Root(%v, %v) = NaN", tt.value, tt.n)
@@ -138,6 +154,8 @@ func TestRoot64(t *testing.T) {
 }
 
 func TestIntPower32(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		base      float32
@@ -159,6 +177,8 @@ func TestIntPower32(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := IntPower(tt.base, tt.exponent)
 			if math.IsNaN(float64(got)) {
 				t.Errorf("IntPower(%v, %v) = NaN", tt.base, tt.exponent)
@@ -174,6 +194,8 @@ func TestIntPower32(t *testing.T) {
 }
 
 func TestIntPower64(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		base      float64
@@ -196,6 +218,8 @@ func TestIntPower64(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := IntPower(tt.base, tt.exponent)
 			if math.IsNaN(got) {
 				t.Errorf("IntPower(%v, %v) = NaN", tt.base, tt.exponent)

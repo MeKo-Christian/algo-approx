@@ -20,6 +20,8 @@ func arctan3Term[T Float](x T) T {
 // Provides approximately 13.7 decimal digits of accuracy.
 //
 // Uses the Taylor series: arctan(x) ≈ x - x³/3 + x⁵/5 - x⁷/7 + x⁹/9 - x¹¹/11.
+//
+
 func arctan6Term[T Float](x T) T {
 	x2 := x * x
 	x3 := x2 * x
@@ -76,6 +78,8 @@ func arccos3Term[T Float](x T) T {
 // arccos6Term computes a 6-term approximation of arccos(x).
 // Valid for x in [-1, 1].
 // Provides approximately 13.7 decimal digits of accuracy.
+//
+
 func arccos6Term[T Float](x T) T {
 	// For x close to 0, use arccos(x) ≈ π/2 - arcsin(x)
 	if x > -0.5 && x < 0.5 {

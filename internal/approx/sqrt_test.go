@@ -6,6 +6,8 @@ import (
 )
 
 func TestSqrtAgainstMath_Float64(t *testing.T) {
+	t.Parallel()
+
 	cases := []float64{0, 1, 2, 4, 16, 1e-12, 1e-6, 1e6, 1e12}
 	for _, x := range cases {
 		got := Sqrt[float64](x, PrecisionBalanced)
@@ -18,6 +20,8 @@ func TestSqrtAgainstMath_Float64(t *testing.T) {
 }
 
 func TestSqrtEdgeCases(t *testing.T) {
+	t.Parallel()
+
 	if !math.IsNaN(float64(Sqrt[float64](-1, PrecisionBalanced))) {
 		t.Fatalf("expected NaN for negative")
 	}
@@ -28,12 +32,12 @@ func TestSqrtEdgeCases(t *testing.T) {
 }
 
 func closeRel(got, ref, tol float64) bool {
-	d := math.Abs(got - ref)
+	dval := math.Abs(got - ref)
 
 	den := math.Abs(ref)
 	if den == 0 {
-		return d <= tol
+		return dval <= tol
 	}
 
-	return d/den <= tol
+	return dval/den <= tol
 }

@@ -4,7 +4,7 @@ import "math"
 
 // Log returns an approximate natural logarithm ln(x).
 //
-//nolint:funlen
+//nolint:funlen,varnamelen
 func Log[T Float](x T, prec Precision) T {
 	// Edge cases.
 	if x != x { //nolint:gocritic

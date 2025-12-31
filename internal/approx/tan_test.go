@@ -10,6 +10,8 @@ import (
 //
 //nolint:dupl
 func TestTan2Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float64
@@ -24,6 +26,8 @@ func TestTan2Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name+"_float64", func(t *testing.T) {
+			t.Parallel()
+
 			got := tan2Term(tt.input)
 			want := math.Tan(tt.input)
 			diff := math.Abs(got - want)
@@ -35,6 +39,8 @@ func TestTan2Term(t *testing.T) {
 		})
 
 		t.Run(tt.name+"_float32", func(t *testing.T) {
+			t.Parallel()
+
 			got := tan2Term(float32(tt.input))
 			want := float32(math.Tan(tt.input))
 			diff := float32(math.Abs(float64(got - want)))
@@ -49,6 +55,8 @@ func TestTan2Term(t *testing.T) {
 
 // TestCotan2Term tests the 2-term Taylor series cotangent approximation.
 func TestCotan2Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float64
@@ -62,6 +70,8 @@ func TestCotan2Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name+"_float64", func(t *testing.T) {
+			t.Parallel()
+
 			got := cotan2Term(tt.input)
 			want := 1.0 / math.Tan(tt.input)
 			diff := math.Abs(got - want)
@@ -73,6 +83,8 @@ func TestCotan2Term(t *testing.T) {
 		})
 
 		t.Run(tt.name+"_float32", func(t *testing.T) {
+			t.Parallel()
+
 			got := cotan2Term(float32(tt.input))
 			want := float32(1.0 / math.Tan(tt.input))
 			diff := float32(math.Abs(float64(got - want)))
@@ -90,6 +102,8 @@ func TestCotan2Term(t *testing.T) {
 //
 //nolint:dupl
 func TestTan3Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float64
@@ -104,6 +118,8 @@ func TestTan3Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name+"_float64", func(t *testing.T) {
+			t.Parallel()
+
 			got := tan3Term(tt.input)
 			want := math.Tan(tt.input)
 			diff := math.Abs(got - want)
@@ -115,6 +131,8 @@ func TestTan3Term(t *testing.T) {
 		})
 
 		t.Run(tt.name+"_float32", func(t *testing.T) {
+			t.Parallel()
+
 			got := tan3Term(float32(tt.input))
 			want := float32(math.Tan(tt.input))
 			diff := float32(math.Abs(float64(got - want)))
@@ -129,6 +147,8 @@ func TestTan3Term(t *testing.T) {
 
 // TestCotan3Term tests the 3-term Taylor series cotangent approximation.
 func TestCotan3Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float64
@@ -142,6 +162,8 @@ func TestCotan3Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name+"_float64", func(t *testing.T) {
+			t.Parallel()
+
 			got := cotan3Term(tt.input)
 			want := 1.0 / math.Tan(tt.input)
 			diff := math.Abs(got - want)
@@ -153,6 +175,8 @@ func TestCotan3Term(t *testing.T) {
 		})
 
 		t.Run(tt.name+"_float32", func(t *testing.T) {
+			t.Parallel()
+
 			got := cotan3Term(float32(tt.input))
 			want := float32(1.0 / math.Tan(tt.input))
 			diff := float32(math.Abs(float64(got - want)))
@@ -170,6 +194,8 @@ func TestCotan3Term(t *testing.T) {
 //
 //nolint:dupl
 func TestTan4Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float64
@@ -184,6 +210,8 @@ func TestTan4Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name+"_float64", func(t *testing.T) {
+			t.Parallel()
+
 			got := tan4Term(tt.input)
 			want := math.Tan(tt.input)
 			diff := math.Abs(got - want)
@@ -195,6 +223,8 @@ func TestTan4Term(t *testing.T) {
 		})
 
 		t.Run(tt.name+"_float32", func(t *testing.T) {
+			t.Parallel()
+
 			got := tan4Term(float32(tt.input))
 			want := float32(math.Tan(tt.input))
 			diff := float32(math.Abs(float64(got - want)))
@@ -209,6 +239,8 @@ func TestTan4Term(t *testing.T) {
 
 // TestCotan4Term tests the 4-term Taylor series cotangent approximation.
 func TestCotan4Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float64
@@ -222,6 +254,8 @@ func TestCotan4Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name+"_float64", func(t *testing.T) {
+			t.Parallel()
+
 			got := cotan4Term(tt.input)
 			want := 1.0 / math.Tan(tt.input)
 			diff := math.Abs(got - want)
@@ -233,6 +267,8 @@ func TestCotan4Term(t *testing.T) {
 		})
 
 		t.Run(tt.name+"_float32", func(t *testing.T) {
+			t.Parallel()
+
 			got := cotan4Term(float32(tt.input))
 			want := float32(1.0 / math.Tan(tt.input))
 			diff := float32(math.Abs(float64(got - want)))
@@ -250,6 +286,8 @@ func TestCotan4Term(t *testing.T) {
 //
 //nolint:dupl
 func TestTan6Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float64
@@ -264,6 +302,8 @@ func TestTan6Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name+"_float64", func(t *testing.T) {
+			t.Parallel()
+
 			got := tan6Term(tt.input)
 			want := math.Tan(tt.input)
 			diff := math.Abs(got - want)
@@ -275,6 +315,8 @@ func TestTan6Term(t *testing.T) {
 		})
 
 		t.Run(tt.name+"_float32", func(t *testing.T) {
+			t.Parallel()
+
 			got := tan6Term(float32(tt.input))
 			want := float32(math.Tan(tt.input))
 			diff := float32(math.Abs(float64(got - want)))
@@ -289,6 +331,8 @@ func TestTan6Term(t *testing.T) {
 
 // TestCotan6Term tests the 6-term Taylor series cotangent approximation.
 func TestCotan6Term(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float64
@@ -302,6 +346,8 @@ func TestCotan6Term(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name+"_float64", func(t *testing.T) {
+			t.Parallel()
+
 			got := cotan6Term(tt.input)
 			want := 1.0 / math.Tan(tt.input)
 			diff := math.Abs(got - want)
@@ -313,6 +359,8 @@ func TestCotan6Term(t *testing.T) {
 		})
 
 		t.Run(tt.name+"_float32", func(t *testing.T) {
+			t.Parallel()
+
 			got := cotan6Term(float32(tt.input))
 			want := float32(1.0 / math.Tan(tt.input))
 			diff := float32(math.Abs(float64(got - want)))

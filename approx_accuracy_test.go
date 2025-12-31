@@ -9,6 +9,7 @@ import (
 )
 
 func TestAccuracy_Balanced_MinimumDigits(t *testing.T) {
+	t.Parallel()
 	// This is a coarse end-to-end check to ensure approximations are in the
 	// right ballpark and remain stable across refactors.
 	const minDigits = 2.0

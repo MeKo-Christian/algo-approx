@@ -7,6 +7,8 @@ import (
 
 // TestArctan3Term tests the 3-term arctangent approximation for float32.
 func TestArctan3Term32(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float32
@@ -20,6 +22,8 @@ func TestArctan3Term32(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := arctan3Term(tt.input)
 			want := float32(math.Atan(float64(tt.input)))
 
@@ -34,6 +38,8 @@ func TestArctan3Term32(t *testing.T) {
 
 // TestArctan3Term tests the 3-term arctangent approximation for float64.
 func TestArctan3Term64(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float64
@@ -47,6 +53,8 @@ func TestArctan3Term64(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := arctan3Term(tt.input)
 			want := math.Atan(tt.input)
 
@@ -61,6 +69,8 @@ func TestArctan3Term64(t *testing.T) {
 
 // TestArctan6Term tests the 6-term arctangent approximation for float32.
 func TestArctan6Term32(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float32
@@ -74,6 +84,8 @@ func TestArctan6Term32(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := arctan6Term(tt.input)
 			want := float32(math.Atan(float64(tt.input)))
 
@@ -88,6 +100,8 @@ func TestArctan6Term32(t *testing.T) {
 
 // TestArctan6Term tests the 6-term arctangent approximation for float64.
 func TestArctan6Term64(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float64
@@ -101,6 +115,8 @@ func TestArctan6Term64(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := arctan6Term(tt.input)
 			want := math.Atan(tt.input)
 
@@ -115,6 +131,8 @@ func TestArctan6Term64(t *testing.T) {
 
 // TestArccotan3Term tests the 3-term arccotangent approximation for float32.
 func TestArccotan3Term32(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float32
@@ -128,6 +146,8 @@ func TestArccotan3Term32(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := arccotan3Term(tt.input)
 			want := float32(math.Pi/2 - math.Atan(float64(tt.input)))
 
@@ -142,6 +162,8 @@ func TestArccotan3Term32(t *testing.T) {
 
 // TestArccotan3Term tests the 3-term arccotangent approximation for float64.
 func TestArccotan3Term64(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float64
@@ -155,6 +177,8 @@ func TestArccotan3Term64(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := arccotan3Term(tt.input)
 			want := math.Pi/2 - math.Atan(tt.input)
 
@@ -169,6 +193,8 @@ func TestArccotan3Term64(t *testing.T) {
 
 // TestArccotan6Term tests the 6-term arccotangent approximation for float32.
 func TestArccotan6Term32(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float32
@@ -182,6 +208,8 @@ func TestArccotan6Term32(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := arccotan6Term(tt.input)
 			want := float32(math.Pi/2 - math.Atan(float64(tt.input)))
 
@@ -196,6 +224,8 @@ func TestArccotan6Term32(t *testing.T) {
 
 // TestArccotan6Term tests the 6-term arccotangent approximation for float64.
 func TestArccotan6Term64(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float64
@@ -209,6 +239,8 @@ func TestArccotan6Term64(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := arccotan6Term(tt.input)
 			want := math.Pi/2 - math.Atan(tt.input)
 
@@ -223,6 +255,8 @@ func TestArccotan6Term64(t *testing.T) {
 
 // TestArccos3Term tests the 3-term arccosine approximation for float32.
 func TestArccos3Term32(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float32
@@ -237,6 +271,8 @@ func TestArccos3Term32(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := arccos3Term(tt.input)
 			want := float32(math.Acos(float64(tt.input)))
 
@@ -251,6 +287,8 @@ func TestArccos3Term32(t *testing.T) {
 
 // TestArccos3Term tests the 3-term arccosine approximation for float64.
 func TestArccos3Term64(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float64
@@ -265,6 +303,8 @@ func TestArccos3Term64(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := arccos3Term(tt.input)
 			want := math.Acos(tt.input)
 
@@ -279,6 +319,8 @@ func TestArccos3Term64(t *testing.T) {
 
 // TestArccos6Term tests the 6-term arccosine approximation for float32.
 func TestArccos6Term32(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float32
@@ -293,6 +335,8 @@ func TestArccos6Term32(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := arccos6Term(tt.input)
 			want := float32(math.Acos(float64(tt.input)))
 
@@ -307,6 +351,8 @@ func TestArccos6Term32(t *testing.T) {
 
 // TestArccos6Term tests the 6-term arccosine approximation for float64.
 func TestArccos6Term64(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float64
@@ -321,6 +367,8 @@ func TestArccos6Term64(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := arccos6Term(tt.input)
 			want := math.Acos(tt.input)
 

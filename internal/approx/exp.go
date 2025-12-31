@@ -9,27 +9,27 @@ func Exp[T Float](x T, prec Precision) T {
 		return x
 	}
 
-	xf := float64(x)
-	if math.IsInf(xf, 1) {
+	xflt := float64(x)
+	if math.IsInf(xflt, 1) {
 		return T(math.Inf(1))
 	}
 
-	if math.IsInf(xf, -1) {
+	if math.IsInf(xflt, -1) {
 		return 0
 	}
 
 	// Clamp to float64 overflow bounds.
-	if xf > maxLogFloat64 {
+	if xflt > maxLogFloat64 {
 		return T(math.Inf(1))
 	}
 
-	if xf < minLogFloat64 {
+	if xflt < minLogFloat64 {
 		return 0
 	}
 
 	// Range reduction: x = k*ln2 + r, r in roughly [-ln2/2, ln2/2].
-	k := int(math.Floor(xf*invLn2 + 0.5))
-	r := xf - float64(k)*ln2
+	k := int(math.Floor(xflt*invLn2 + 0.5))
+	r := xflt - float64(k)*ln2
 
 	expr := expPoly(r, normalizePrecision(prec))
 
@@ -47,6 +47,7 @@ func Exp[T Float](x T, prec Precision) T {
 	return T(res)
 }
 
+//nolint:varnamelen
 func expPoly(r float64, prec Precision) float64 {
 	// Evaluate truncated Taylor polynomial via Horner.
 	switch prec {

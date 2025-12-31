@@ -7,36 +7,36 @@ import "math"
 // Expected accuracy: ~3.2 decimal digits for |x| < π/2.
 func sin3Term[T Float](x T) T {
 	// Range reduction: reduce x to [-π/2, π/2]
-	xf := float64(x)
+	xflt := float64(x)
 
 	// Handle periodicity: sin(x + 2πk) = sin(x)
 	const twoPi = 2 * math.Pi
 
-	xf = math.Mod(xf, twoPi)
+	xflt = math.Mod(xflt, twoPi)
 
 	// Reduce to [-π, π]
-	if xf > math.Pi {
-		xf -= twoPi
-	} else if xf < -math.Pi {
-		xf += twoPi
+	if xflt > math.Pi {
+		xflt -= twoPi
+	} else if xflt < -math.Pi {
+		xflt += twoPi
 	}
 
 	// Reduce to [-π/2, π/2] using sin(π - x) = sin(x) and sin(-π - x) = -sin(x)
 	sign := T(1.0)
 
-	if xf > math.Pi/2 {
-		xf = math.Pi - xf
-	} else if xf < -math.Pi/2 {
-		xf = -math.Pi - xf
+	if xflt > math.Pi/2 {
+		xflt = math.Pi - xflt
+	} else if xflt < -math.Pi/2 {
+		xflt = -math.Pi - xflt
 	}
 
 	// Now xf is in [-π/2, π/2], apply 3-term Taylor series
 	// sin(x) ≈ x - x³/6 + x⁵/120
-	x2 := xf * xf
-	x3 := xf * x2
+	x2 := xflt * xflt
+	x3 := xflt * x2
 	x5 := x3 * x2
 
-	result := xf - x3/6.0 + x5/120.0
+	result := xflt - x3/6.0 + x5/120.0
 
 	return sign * T(result)
 }
@@ -46,26 +46,26 @@ func sin3Term[T Float](x T) T {
 // Expected accuracy: ~3.2 decimal digits for |x| < π/2.
 func cos3Term[T Float](x T) T {
 	// Range reduction: reduce x to [0, π]
-	xf := float64(x)
+	xflt := float64(x)
 
 	// Handle periodicity: cos(x + 2πk) = cos(x)
 	const twoPi = 2 * math.Pi
 
-	xf = math.Mod(xf, twoPi)
+	xflt = math.Mod(xflt, twoPi)
 
 	// Reduce to [0, 2π]
-	if xf < 0 {
-		xf += twoPi
+	if xflt < 0 {
+		xflt += twoPi
 	}
 
 	// Reduce to [0, π] using cos(2π - x) = cos(x)
-	if xf > math.Pi {
-		xf = twoPi - xf
+	if xflt > math.Pi {
+		xflt = twoPi - xflt
 	}
 
 	// Now xf is in [0, π], apply 3-term Taylor series
 	// cos(x) ≈ 1 - x²/2 + x⁴/24
-	x2 := xf * xf
+	x2 := xflt * xflt
 	x4 := x2 * x2
 
 	result := 1.0 - x2/2.0 + x4/24.0
@@ -94,37 +94,37 @@ func csc3Term[T Float](x T) T {
 // Expected accuracy: ~5.2 decimal digits for |x| < π/2.
 func sin4Term[T Float](x T) T {
 	// Range reduction: reduce x to [-π/2, π/2]
-	xf := float64(x)
+	xflt := float64(x)
 
 	// Handle periodicity: sin(x + 2πk) = sin(x)
 	const twoPi = 2 * math.Pi
 
-	xf = math.Mod(xf, twoPi)
+	xflt = math.Mod(xflt, twoPi)
 
 	// Reduce to [-π, π]
-	if xf > math.Pi {
-		xf -= twoPi
-	} else if xf < -math.Pi {
-		xf += twoPi
+	if xflt > math.Pi {
+		xflt -= twoPi
+	} else if xflt < -math.Pi {
+		xflt += twoPi
 	}
 
 	// Reduce to [-π/2, π/2]
 	sign := T(1.0)
 
-	if xf > math.Pi/2 {
-		xf = math.Pi - xf
-	} else if xf < -math.Pi/2 {
-		xf = -math.Pi - xf
+	if xflt > math.Pi/2 {
+		xflt = math.Pi - xflt
+	} else if xflt < -math.Pi/2 {
+		xflt = -math.Pi - xflt
 	}
 
 	// Apply 4-term Taylor series
 	// sin(x) ≈ x - x³/6 + x⁵/120 - x⁷/5040
-	x2 := xf * xf
-	x3 := xf * x2
+	x2 := xflt * xflt
+	x3 := xflt * x2
 	x5 := x3 * x2
 	x7 := x5 * x2
 
-	result := xf - x3/6.0 + x5/120.0 - x7/5040.0
+	result := xflt - x3/6.0 + x5/120.0 - x7/5040.0
 
 	return sign * T(result)
 }
@@ -134,26 +134,26 @@ func sin4Term[T Float](x T) T {
 // Expected accuracy: ~5.2 decimal digits for |x| < π/2.
 func cos4Term[T Float](x T) T {
 	// Range reduction: reduce x to [0, π]
-	xf := float64(x)
+	xflt := float64(x)
 
 	// Handle periodicity: cos(x + 2πk) = cos(x)
 	const twoPi = 2 * math.Pi
 
-	xf = math.Mod(xf, twoPi)
+	xflt = math.Mod(xflt, twoPi)
 
 	// Reduce to [0, 2π]
-	if xf < 0 {
-		xf += twoPi
+	if xflt < 0 {
+		xflt += twoPi
 	}
 
 	// Reduce to [0, π]
-	if xf > math.Pi {
-		xf = twoPi - xf
+	if xflt > math.Pi {
+		xflt = twoPi - xflt
 	}
 
 	// Apply 4-term Taylor series
 	// cos(x) ≈ 1 - x²/2 + x⁴/24 - x⁶/720
-	x2 := xf * xf
+	x2 := xflt * xflt
 	x4 := x2 * x2
 	x6 := x4 * x2
 
@@ -179,35 +179,35 @@ func csc4Term[T Float](x T) T {
 // Expected accuracy: ~7.3 decimal digits for |x| < π/2.
 func sin5Term[T Float](x T) T {
 	// Range reduction: reduce x to [-π/2, π/2]
-	xf := float64(x)
+	xflt := float64(x)
 
 	const twoPi = 2 * math.Pi
 
-	xf = math.Mod(xf, twoPi)
+	xflt = math.Mod(xflt, twoPi)
 
-	if xf > math.Pi {
-		xf -= twoPi
-	} else if xf < -math.Pi {
-		xf += twoPi
+	if xflt > math.Pi {
+		xflt -= twoPi
+	} else if xflt < -math.Pi {
+		xflt += twoPi
 	}
 
 	sign := T(1.0)
 
-	if xf > math.Pi/2 {
-		xf = math.Pi - xf
-	} else if xf < -math.Pi/2 {
-		xf = -math.Pi - xf
+	if xflt > math.Pi/2 {
+		xflt = math.Pi - xflt
+	} else if xflt < -math.Pi/2 {
+		xflt = -math.Pi - xflt
 	}
 
 	// Apply 5-term Taylor series
 	// sin(x) ≈ x - x³/6 + x⁵/120 - x⁷/5040 + x⁹/362880
-	x2 := xf * xf
-	x3 := xf * x2
+	x2 := xflt * xflt
+	x3 := xflt * x2
 	x5 := x3 * x2
 	x7 := x5 * x2
 	x9 := x7 * x2
 
-	result := xf - x3/6.0 + x5/120.0 - x7/5040.0 + x9/362880.0
+	result := xflt - x3/6.0 + x5/120.0 - x7/5040.0 + x9/362880.0
 
 	return sign * T(result)
 }
@@ -217,23 +217,23 @@ func sin5Term[T Float](x T) T {
 // Expected accuracy: ~7.3 decimal digits for |x| < π/2.
 func cos5Term[T Float](x T) T {
 	// Range reduction: reduce x to [0, π]
-	xf := float64(x)
+	xflt := float64(x)
 
 	const twoPi = 2 * math.Pi
 
-	xf = math.Mod(xf, twoPi)
+	xflt = math.Mod(xflt, twoPi)
 
-	if xf < 0 {
-		xf += twoPi
+	if xflt < 0 {
+		xflt += twoPi
 	}
 
-	if xf > math.Pi {
-		xf = twoPi - xf
+	if xflt > math.Pi {
+		xflt = twoPi - xflt
 	}
 
 	// Apply 5-term Taylor series
 	// cos(x) ≈ 1 - x²/2 + x⁴/24 - x⁶/720 + x⁸/40320
-	x2 := xf * xf
+	x2 := xflt * xflt
 	x4 := x2 * x2
 	x6 := x4 * x2
 	x8 := x6 * x2
@@ -258,35 +258,35 @@ func csc5Term[T Float](x T) T {
 // sin6Term computes sine using a 6-term Taylor series approximation.
 // Expected accuracy: ~9 decimal digits for |x| < π/2.
 func sin6Term[T Float](x T) T {
-	xf := float64(x)
+	xflt := float64(x)
 
 	const twoPi = 2 * math.Pi
 
-	xf = math.Mod(xf, twoPi)
+	xflt = math.Mod(xflt, twoPi)
 
-	if xf > math.Pi {
-		xf -= twoPi
-	} else if xf < -math.Pi {
-		xf += twoPi
+	if xflt > math.Pi {
+		xflt -= twoPi
+	} else if xflt < -math.Pi {
+		xflt += twoPi
 	}
 
 	sign := T(1.0)
 
-	if xf > math.Pi/2 {
-		xf = math.Pi - xf
-	} else if xf < -math.Pi/2 {
-		xf = -math.Pi - xf
+	if xflt > math.Pi/2 {
+		xflt = math.Pi - xflt
+	} else if xflt < -math.Pi/2 {
+		xflt = -math.Pi - xflt
 	}
 
 	// 6-term: add x¹¹/11!
-	x2 := xf * xf
-	x3 := xf * x2
+	x2 := xflt * xflt
+	x3 := xflt * x2
 	x5 := x3 * x2
 	x7 := x5 * x2
 	x9 := x7 * x2
 	x11 := x9 * x2
 
-	result := xf - x3/6.0 + x5/120.0 - x7/5040.0 + x9/362880.0 - x11/39916800.0
+	result := xflt - x3/6.0 + x5/120.0 - x7/5040.0 + x9/362880.0 - x11/39916800.0
 
 	return sign * T(result)
 }
@@ -294,22 +294,22 @@ func sin6Term[T Float](x T) T {
 // cos6Term computes cosine using a 6-term Taylor series approximation.
 // Expected accuracy: ~9 decimal digits for |x| < π/2.
 func cos6Term[T Float](x T) T {
-	xf := float64(x)
+	xflt := float64(x)
 
 	const twoPi = 2 * math.Pi
 
-	xf = math.Mod(xf, twoPi)
+	xflt = math.Mod(xflt, twoPi)
 
-	if xf < 0 {
-		xf += twoPi
+	if xflt < 0 {
+		xflt += twoPi
 	}
 
-	if xf > math.Pi {
-		xf = twoPi - xf
+	if xflt > math.Pi {
+		xflt = twoPi - xflt
 	}
 
 	// 6-term: add x¹⁰/10!
-	x2 := xf * xf
+	x2 := xflt * xflt
 	x4 := x2 * x2
 	x6 := x4 * x2
 	x8 := x6 * x2
@@ -335,36 +335,36 @@ func csc6Term[T Float](x T) T {
 // sin7Term computes sine using a 7-term Taylor series approximation.
 // Expected accuracy: ~12.1 decimal digits for |x| < π/2.
 func sin7Term[T Float](x T) T {
-	xf := float64(x)
+	xflt := float64(x)
 
 	const twoPi = 2 * math.Pi
 
-	xf = math.Mod(xf, twoPi)
+	xflt = math.Mod(xflt, twoPi)
 
-	if xf > math.Pi {
-		xf -= twoPi
-	} else if xf < -math.Pi {
-		xf += twoPi
+	if xflt > math.Pi {
+		xflt -= twoPi
+	} else if xflt < -math.Pi {
+		xflt += twoPi
 	}
 
 	sign := T(1.0)
 
-	if xf > math.Pi/2 {
-		xf = math.Pi - xf
-	} else if xf < -math.Pi/2 {
-		xf = -math.Pi - xf
+	if xflt > math.Pi/2 {
+		xflt = math.Pi - xflt
+	} else if xflt < -math.Pi/2 {
+		xflt = -math.Pi - xflt
 	}
 
 	// 7-term: add x¹³/13!
-	x2 := xf * xf
-	x3 := xf * x2
+	x2 := xflt * xflt
+	x3 := xflt * x2
 	x5 := x3 * x2
 	x7 := x5 * x2
 	x9 := x7 * x2
 	x11 := x9 * x2
 	x13 := x11 * x2
 
-	result := xf - x3/6.0 + x5/120.0 - x7/5040.0 + x9/362880.0 - x11/39916800.0 + x13/6227020800.0
+	result := xflt - x3/6.0 + x5/120.0 - x7/5040.0 + x9/362880.0 - x11/39916800.0 + x13/6227020800.0
 
 	return sign * T(result)
 }
@@ -372,22 +372,22 @@ func sin7Term[T Float](x T) T {
 // cos7Term computes cosine using a 7-term Taylor series approximation.
 // Expected accuracy: ~12.1 decimal digits for |x| < π/2.
 func cos7Term[T Float](x T) T {
-	xf := float64(x)
+	xflt := float64(x)
 
 	const twoPi = 2 * math.Pi
 
-	xf = math.Mod(xf, twoPi)
+	xflt = math.Mod(xflt, twoPi)
 
-	if xf < 0 {
-		xf += twoPi
+	if xflt < 0 {
+		xflt += twoPi
 	}
 
-	if xf > math.Pi {
-		xf = twoPi - xf
+	if xflt > math.Pi {
+		xflt = twoPi - xflt
 	}
 
 	// 7-term: add x¹²/12!
-	x2 := xf * xf
+	x2 := xflt * xflt
 	x4 := x2 * x2
 	x6 := x4 * x2
 	x8 := x6 * x2

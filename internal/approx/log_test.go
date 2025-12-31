@@ -6,6 +6,8 @@ import (
 )
 
 func TestLogAgainstMath_Float64(t *testing.T) {
+	t.Parallel()
+
 	cases := []float64{0.125, 0.5, 1, 2, 10, 1e-12, 1e-6, 1e6}
 	for _, x := range cases {
 		got := Log[float64](x, PrecisionBalanced)
@@ -18,6 +20,8 @@ func TestLogAgainstMath_Float64(t *testing.T) {
 }
 
 func TestLogEdgeCases(t *testing.T) {
+	t.Parallel()
+
 	if !math.IsInf(float64(Log[float64](0, PrecisionBalanced)), -1) {
 		t.Fatalf("expected -Inf for zero")
 	}

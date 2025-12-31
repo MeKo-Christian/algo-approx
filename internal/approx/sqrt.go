@@ -13,6 +13,7 @@ func sqrtFast[T Float](x T) T     { return sqrtBabylonian(x, 1) }
 func sqrtBalanced[T Float](x T) T { return sqrtBabylonian(x, 2) }
 func sqrtHigh[T Float](x T) T     { return sqrtBabylonian(x, 3) }
 
+//nolint:varnamelen
 func sqrtBabylonian[T Float](x T, iterations int) T {
 	// Edge cases.
 	if x == 0 {

@@ -6,6 +6,8 @@ import (
 )
 
 func TestPublicAPI_Sqrt(t *testing.T) {
+	t.Parallel()
+
 	got := FastSqrt(16.0)
 	if math.Abs(got-4.0) > 1e-2 {
 		t.Fatalf("FastSqrt(16) got %g", got)
@@ -13,6 +15,8 @@ func TestPublicAPI_Sqrt(t *testing.T) {
 }
 
 func TestPublicAPI_InvSqrt(t *testing.T) {
+	t.Parallel()
+
 	got := FastInvSqrt(4.0)
 	if math.Abs(got-0.5) > 1e-2 {
 		t.Fatalf("FastInvSqrt(4) got %g", got)
@@ -20,6 +24,8 @@ func TestPublicAPI_InvSqrt(t *testing.T) {
 }
 
 func TestPublicAPI_LogExp(t *testing.T) {
+	t.Parallel()
+
 	x := 3.0
 	if math.Abs(FastExp(FastLog(x))-x) > 5e-2 {
 		t.Fatalf("exp(log(x)) composition too far")
@@ -28,6 +34,8 @@ func TestPublicAPI_LogExp(t *testing.T) {
 
 // TestFastSin tests the public FastSin API.
 func TestFastSin(t *testing.T) {
+	t.Parallel()
+
 	x := math.Pi / 6.0
 	got := FastSin(x)
 
@@ -39,6 +47,8 @@ func TestFastSin(t *testing.T) {
 
 // TestFastSinPrec tests FastSin with explicit precision.
 func TestFastSinPrec(t *testing.T) {
+	t.Parallel()
+
 	x := math.Pi / 6.0
 
 	// Test each precision level
@@ -56,6 +66,8 @@ func TestFastSinPrec(t *testing.T) {
 
 // TestFastCos tests the public FastCos API.
 func TestFastCos(t *testing.T) {
+	t.Parallel()
+
 	x := math.Pi / 3.0
 	got := FastCos(x)
 
@@ -67,6 +79,8 @@ func TestFastCos(t *testing.T) {
 
 // TestFastCosPrec tests FastCos with explicit precision.
 func TestFastCosPrec(t *testing.T) {
+	t.Parallel()
+
 	x := math.Pi / 3.0
 
 	precisions := []Precision{PrecisionFast, PrecisionBalanced, PrecisionHigh}
@@ -83,6 +97,8 @@ func TestFastCosPrec(t *testing.T) {
 
 // TestFastTan tests the public FastTan API.
 func TestFastTan(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float64
@@ -95,6 +111,8 @@ func TestFastTan(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := FastTan(tt.input)
 			want := math.Tan(tt.input)
 			diff := math.Abs(got - want)
@@ -109,9 +127,13 @@ func TestFastTan(t *testing.T) {
 
 // TestFastTanPrec tests the public FastTanPrec API with different precision levels.
 func TestFastTanPrec(t *testing.T) {
+	t.Parallel()
+
 	x := math.Pi / 6
 
 	t.Run("PrecisionFast", func(t *testing.T) {
+		t.Parallel()
+
 		got := FastTanPrec(x, PrecisionFast)
 		want := math.Tan(x)
 
@@ -122,6 +144,8 @@ func TestFastTanPrec(t *testing.T) {
 	})
 
 	t.Run("PrecisionBalanced", func(t *testing.T) {
+		t.Parallel()
+
 		got := FastTanPrec(x, PrecisionBalanced)
 		want := math.Tan(x)
 
@@ -132,6 +156,8 @@ func TestFastTanPrec(t *testing.T) {
 	})
 
 	t.Run("PrecisionHigh", func(t *testing.T) {
+		t.Parallel()
+
 		got := FastTanPrec(x, PrecisionHigh)
 		want := math.Tan(x)
 
@@ -144,6 +170,8 @@ func TestFastTanPrec(t *testing.T) {
 
 // TestFastCotan tests the public FastCotan API.
 func TestFastCotan(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float64
@@ -156,6 +184,8 @@ func TestFastCotan(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := FastCotan(tt.input)
 			want := 1.0 / math.Tan(tt.input)
 			diff := math.Abs(got - want)
@@ -170,6 +200,8 @@ func TestFastCotan(t *testing.T) {
 
 // TestFastArctan tests the public FastArctan API.
 func TestFastArctan(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float64
@@ -182,6 +214,8 @@ func TestFastArctan(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := FastArctan(tt.input)
 			want := math.Atan(tt.input)
 			diff := math.Abs(got - want)
@@ -198,9 +232,13 @@ func TestFastArctan(t *testing.T) {
 //
 //nolint:dupl
 func TestFastArctanPrec(t *testing.T) {
+	t.Parallel()
+
 	x := 0.1
 
 	t.Run("PrecisionFast", func(t *testing.T) {
+		t.Parallel()
+
 		got := FastArctanPrec(x, PrecisionFast)
 		want := math.Atan(x)
 
@@ -211,6 +249,8 @@ func TestFastArctanPrec(t *testing.T) {
 	})
 
 	t.Run("PrecisionBalanced", func(t *testing.T) {
+		t.Parallel()
+
 		got := FastArctanPrec(x, PrecisionBalanced)
 		want := math.Atan(x)
 
@@ -221,6 +261,8 @@ func TestFastArctanPrec(t *testing.T) {
 	})
 
 	t.Run("PrecisionHigh", func(t *testing.T) {
+		t.Parallel()
+
 		got := FastArctanPrec(x, PrecisionHigh)
 		want := math.Atan(x)
 
@@ -233,6 +275,8 @@ func TestFastArctanPrec(t *testing.T) {
 
 // TestFastArccotan tests the public FastArccotan API.
 func TestFastArccotan(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float64
@@ -244,6 +288,8 @@ func TestFastArccotan(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := FastArccotan(tt.input)
 			want := math.Pi/2 - math.Atan(tt.input)
 			diff := math.Abs(got - want)
@@ -258,6 +304,8 @@ func TestFastArccotan(t *testing.T) {
 
 // TestFastArccos tests the public FastArccos API.
 func TestFastArccos(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     float64
@@ -271,6 +319,8 @@ func TestFastArccos(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := FastArccos(tt.input)
 			want := math.Acos(tt.input)
 			diff := math.Abs(got - want)
@@ -287,9 +337,13 @@ func TestFastArccos(t *testing.T) {
 //
 //nolint:dupl
 func TestFastArccosPrec(t *testing.T) {
+	t.Parallel()
+
 	x := 0.5
 
 	t.Run("PrecisionFast", func(t *testing.T) {
+		t.Parallel()
+
 		got := FastArccosPrec(x, PrecisionFast)
 		want := math.Acos(x)
 
@@ -300,6 +354,8 @@ func TestFastArccosPrec(t *testing.T) {
 	})
 
 	t.Run("PrecisionBalanced", func(t *testing.T) {
+		t.Parallel()
+
 		got := FastArccosPrec(x, PrecisionBalanced)
 		want := math.Acos(x)
 
@@ -310,6 +366,8 @@ func TestFastArccosPrec(t *testing.T) {
 	})
 
 	t.Run("PrecisionHigh", func(t *testing.T) {
+		t.Parallel()
+
 		got := FastArccosPrec(x, PrecisionHigh)
 		want := math.Acos(x)
 
@@ -322,6 +380,8 @@ func TestFastArccosPrec(t *testing.T) {
 
 // TestFastPower tests the public FastPower API.
 func TestFastPower(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		base      float64
@@ -336,6 +396,8 @@ func TestFastPower(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := FastPower(tt.base, tt.exponent)
 			want := math.Pow(tt.base, tt.exponent)
 			diff := math.Abs(got - want)
@@ -350,6 +412,8 @@ func TestFastPower(t *testing.T) {
 
 // TestFastRoot tests the public FastRoot API.
 func TestFastRoot(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		value     float64
@@ -364,6 +428,8 @@ func TestFastRoot(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := FastRoot(tt.value, tt.n)
 			want := math.Pow(tt.value, 1.0/float64(tt.n))
 			diff := math.Abs(got - want)
@@ -378,6 +444,8 @@ func TestFastRoot(t *testing.T) {
 
 // TestFastIntPower tests the public FastIntPower API.
 func TestFastIntPower(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		base      float64
@@ -393,6 +461,8 @@ func TestFastIntPower(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := FastIntPower(tt.base, tt.exponent)
 			want := math.Pow(tt.base, float64(tt.exponent))
 			diff := math.Abs(got - want)

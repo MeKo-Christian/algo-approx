@@ -30,6 +30,7 @@ func TestProperty_Sqrt_Square_Float64(t *testing.T) {
 }
 
 func TestProperty_InvSqrt_Sqrt_Product_Float64(t *testing.T) {
+	t.Parallel()
 	// For x>0: invsqrt(x)*sqrt(x) ≈ 1
 	for _, x := range []float64{1e-12, 1e-6, 0.1, 1, 2, 10, 1e6, 1e12} {
 		p := float64(FastInvSqrt(x) * FastSqrt(x))
@@ -40,6 +41,8 @@ func TestProperty_InvSqrt_Sqrt_Product_Float64(t *testing.T) {
 }
 
 func TestProperty_Monotonicity_Sqrt_Float64(t *testing.T) {
+	t.Parallel()
+
 	prev := FastSqrt(0.0)
 	for _, x := range []float64{1e-12, 1e-6, 1e-3, 0.1, 1, 2, 10, 1e3, 1e6} {
 		cur := FastSqrt(x)
@@ -52,18 +55,20 @@ func TestProperty_Monotonicity_Sqrt_Float64(t *testing.T) {
 }
 
 func closeRel(got, ref, tol float64) bool {
-	d := math.Abs(got - ref)
+	dval := math.Abs(got - ref)
 
 	den := math.Abs(ref)
 	if den == 0 {
-		return d <= tol
+		return dval <= tol
 	}
 
-	return d/den <= tol
+	return dval/den <= tol
 }
 
 // TestTrigIdentity_SinSquaredPlusCosSquared tests sin²(x) + cos²(x) ≈ 1.
 func TestTrigIdentity_SinSquaredPlusCosSquared(t *testing.T) {
+	t.Parallel()
+
 	testValues := []float64{
 		0, math.Pi / 6, math.Pi / 4, math.Pi / 3, math.Pi / 2,
 		2 * math.Pi / 3, 3 * math.Pi / 4, 5 * math.Pi / 6,
@@ -85,6 +90,8 @@ func TestTrigIdentity_SinSquaredPlusCosSquared(t *testing.T) {
 // TestTrigIdentity_SinSquaredPlusCosSquared_NearPi tests the identity near π
 // where approximation errors can accumulate.
 func TestTrigIdentity_SinSquaredPlusCosSquared_NearPi(t *testing.T) {
+	t.Parallel()
+
 	x := math.Pi
 	sinVal := FastSin(x)
 	cosVal := FastCos(x)
@@ -98,6 +105,8 @@ func TestTrigIdentity_SinSquaredPlusCosSquared_NearPi(t *testing.T) {
 
 // TestTrigIdentity_SecIsCosReciprocal tests sec(x) ≈ 1/cos(x).
 func TestTrigIdentity_SecIsCosReciprocal(t *testing.T) {
+	t.Parallel()
+
 	testValues := []float64{0, math.Pi / 6, math.Pi / 4, math.Pi / 3}
 
 	for _, x := range testValues {
@@ -113,6 +122,8 @@ func TestTrigIdentity_SecIsCosReciprocal(t *testing.T) {
 
 // TestTrigIdentity_CscIsSinReciprocal tests csc(x) ≈ 1/sin(x).
 func TestTrigIdentity_CscIsSinReciprocal(t *testing.T) {
+	t.Parallel()
+
 	testValues := []float64{math.Pi / 6, math.Pi / 4, math.Pi / 3, math.Pi / 2}
 
 	for _, x := range testValues {
@@ -128,6 +139,8 @@ func TestTrigIdentity_CscIsSinReciprocal(t *testing.T) {
 
 // TestTrigSymmetry_SinIsOdd tests sin(-x) ≈ -sin(x).
 func TestTrigSymmetry_SinIsOdd(t *testing.T) {
+	t.Parallel()
+
 	testValues := []float64{math.Pi / 6, math.Pi / 4, math.Pi / 3, math.Pi / 2}
 
 	for _, x := range testValues {
@@ -142,6 +155,8 @@ func TestTrigSymmetry_SinIsOdd(t *testing.T) {
 
 // TestTrigSymmetry_CosIsEven tests cos(-x) ≈ cos(x).
 func TestTrigSymmetry_CosIsEven(t *testing.T) {
+	t.Parallel()
+
 	testValues := []float64{math.Pi / 6, math.Pi / 4, math.Pi / 3, math.Pi / 2}
 
 	for _, x := range testValues {
@@ -156,6 +171,7 @@ func TestTrigSymmetry_CosIsEven(t *testing.T) {
 
 // TestTangentIdentity tests the identity: tan(x) * cotan(x) ≈ 1.
 func TestTangentIdentity(t *testing.T) {
+	t.Parallel()
 	// Test in range where both tan and cotan are well-behaved
 	for i := range 20 {
 		x := float64(i) * math.Pi / 24 // 0 to 5π/6 in steps of π/24
@@ -177,6 +193,8 @@ func TestTangentIdentity(t *testing.T) {
 
 // TestTangentReciprocal tests: cotan(x) ≈ 1/tan(x).
 func TestTangentReciprocal(t *testing.T) {
+	t.Parallel()
+
 	for i := 1; i < 20; i++ {
 		x := float64(i) * math.Pi / 24
 
@@ -193,6 +211,8 @@ func TestTangentReciprocal(t *testing.T) {
 
 // TestTangentPeriodicityProperty tests: tan(x + π) ≈ tan(x).
 func TestTangentPeriodicityProperty(t *testing.T) {
+	t.Parallel()
+
 	for i := range 10 {
 		x := float64(i) * math.Pi / 12
 
@@ -209,6 +229,8 @@ func TestTangentPeriodicityProperty(t *testing.T) {
 
 // TestArctanArccotanReciprocal verifies that arctan(x) + arccotan(x) ≈ π/2.
 func TestArctanArccotanReciprocal(t *testing.T) {
+	t.Parallel()
+
 	tolerance := 0.0001
 
 	tests := []float64{0.1, 0.2, 0.25}
@@ -230,6 +252,8 @@ func TestArctanArccotanReciprocal(t *testing.T) {
 
 // TestArccosComplementarity verifies that arccos(x) + arcsin(x) ≈ π/2 for small x.
 func TestArccosComplementarity(t *testing.T) {
+	t.Parallel()
+
 	tolerance := 0.002
 
 	tests := []float64{0.0, 0.5, math.Sqrt(2) / 2}
@@ -251,6 +275,8 @@ func TestArccosComplementarity(t *testing.T) {
 
 // TestInverseTrigRoundTrip tests that tan(arctan(x)) ≈ x for small x.
 func TestInverseTrigRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	tolerance := 0.0001
 
 	tests := []float64{0.0, 0.1, 0.2}
@@ -270,6 +296,8 @@ func TestInverseTrigRoundTrip(t *testing.T) {
 
 // TestPowerRootIdentity tests the identity: root(x^n, n) ≈ x.
 func TestPowerRootIdentity(t *testing.T) {
+	t.Parallel()
+
 	tolerance := 1e-4
 
 	tests := []struct {
@@ -299,6 +327,8 @@ func TestPowerRootIdentity(t *testing.T) {
 
 // TestIntPowerVsPower tests that IntPower and Power give similar results for integer exponents.
 func TestIntPowerVsPower(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		base      float64
 		exponent  int
@@ -324,6 +354,8 @@ func TestIntPowerVsPower(t *testing.T) {
 
 // TestPowerExponentLaws tests power laws: (a^b)^c = a^(b*c).
 func TestPowerExponentLaws(t *testing.T) {
+	t.Parallel()
+
 	tolerance := 1e-2
 
 	tests := []struct {
@@ -357,6 +389,8 @@ func TestPowerExponentLaws(t *testing.T) {
 
 // TestRootSquareIdentity tests: sqrt(x) = root(x, 2).
 func TestRootSquareIdentity(t *testing.T) {
+	t.Parallel()
+
 	tolerance := 1e-10
 
 	tests := []float64{1.0, 2.0, 4.0, 9.0, 16.0, 100.0}
@@ -375,6 +409,8 @@ func TestRootSquareIdentity(t *testing.T) {
 
 // TestIntPowerNegativeExponent tests: x^(-n) = 1/(x^n).
 func TestIntPowerNegativeExponent(t *testing.T) {
+	t.Parallel()
+
 	tolerance := 1e-14
 
 	tests := []struct {

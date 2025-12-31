@@ -6,6 +6,8 @@ import (
 )
 
 func TestExpAgainstMath_Float64(t *testing.T) {
+	t.Parallel()
+
 	cases := []float64{-10, -2, -1, 0, 1, 2, 10}
 	for _, x := range cases {
 		got := Exp[float64](x, PrecisionBalanced)
@@ -18,6 +20,8 @@ func TestExpAgainstMath_Float64(t *testing.T) {
 }
 
 func TestExpEdgeCases(t *testing.T) {
+	t.Parallel()
+
 	if Exp[float64](math.Inf(-1), PrecisionBalanced) != 0 {
 		t.Fatalf("expected 0 for -Inf")
 	}

@@ -13,6 +13,7 @@ func invSqrtFast[T Float](x T) T     { return invSqrtQuakeNR(x, 1) }
 func invSqrtBalanced[T Float](x T) T { return invSqrtQuakeNR(x, 2) }
 func invSqrtHigh[T Float](x T) T     { return invSqrtQuakeNR(x, 3) }
 
+//nolint:varnamelen
 func invSqrtQuakeNR[T Float](x T, iters int) T {
 	// Edge cases.
 	if x == 0 {

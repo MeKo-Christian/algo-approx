@@ -7,6 +7,8 @@ import (
 )
 
 // TestDetectFeatures tests that CPU feature detection returns valid results.
+//
+//nolint:paralleltest
 func TestDetectFeatures(t *testing.T) {
 	// Not parallel: tests manipulate global detection state.
 	features := DetectFeatures()
@@ -36,6 +38,8 @@ func TestDetectFeatures(t *testing.T) {
 }
 
 // TestQueryFunctions tests that query functions match struct fields.
+//
+//nolint:paralleltest
 func TestQueryFunctions(t *testing.T) {
 	// Not parallel: tests manipulate global detection state.
 
@@ -73,7 +77,7 @@ func TestQueryFunctions(t *testing.T) {
 
 // TestForcedFeatures tests that SetForcedFeatures overrides detection.
 //
-//nolint:gocognit,cyclop
+//nolint:gocognit,cyclop,funlen,paralleltest
 func TestForcedFeatures(t *testing.T) {
 	// Not parallel: tests manipulate global detection state.
 
@@ -204,6 +208,8 @@ func TestForcedFeatures(t *testing.T) {
 }
 
 // TestResetDetection tests that ResetDetection clears forced features.
+//
+//nolint:paralleltest
 func TestResetDetection(t *testing.T) {
 	// Not parallel: tests manipulate global detection state.
 
@@ -244,6 +250,8 @@ func TestResetDetection(t *testing.T) {
 }
 
 // TestConcurrentDetection tests thread-safety of sync.Once caching.
+//
+//nolint:paralleltest
 func TestConcurrentDetection(t *testing.T) {
 	// Not parallel: tests manipulate global detection state.
 
@@ -279,6 +287,8 @@ func TestConcurrentDetection(t *testing.T) {
 }
 
 // TestDetectionCaching verifies that detection only runs once.
+//
+//nolint:paralleltest
 func TestDetectionCaching(t *testing.T) {
 	// Not parallel: tests manipulate global detection state.
 
@@ -305,7 +315,7 @@ func TestDetectionCaching(t *testing.T) {
 
 // TestFeaturesStructFields verifies the Features struct has expected fields.
 //
-//nolint:cyclop
+//nolint:cyclop,paralleltest
 func TestFeaturesStructFields(t *testing.T) {
 	features := Features{
 		HasSSE2:      true,

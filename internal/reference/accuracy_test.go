@@ -7,6 +7,8 @@ import (
 )
 
 func TestMeasureAccuracyBasic(t *testing.T) {
+	t.Parallel()
+
 	samples := []float64{1, 2, 3, 4}
 
 	m := MeasureAccuracy[float64](samples,
