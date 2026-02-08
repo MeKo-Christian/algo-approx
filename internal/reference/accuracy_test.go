@@ -3,7 +3,7 @@ package reference
 import (
 	"testing"
 
-	approx "github.com/meko-christian/algo-approx"
+	approx "github.com/cwbudde/algo-approx"
 )
 
 func TestMeasureAccuracyBasic(t *testing.T) {

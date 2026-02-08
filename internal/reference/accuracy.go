@@ -3,7 +3,7 @@ package reference
 import (
 	"math"
 
-	approx "github.com/meko-christian/algo-approx"
+	approx "github.com/cwbudde/algo-approx"
 )
 
 // AccuracyMetrics summarizes error statistics for an approximation.

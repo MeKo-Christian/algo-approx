@@ -94,7 +94,7 @@ algo-approx/
 **Tasks**:
 
 - [x] Create repository directory: `mkdir -p ../algo-approx`
-- [x] Initialize Go module: `go mod init github.com/meko-christian/algo-approx`
+- [x] Initialize Go module: `go mod init github.com/cwbudde/algo-approx`
 - [x] Set Go version: `go mod edit -go=1.25.0`
 - [x] Copy build infrastructure from ../go-fft:
   - [x] `justfile` (adapt targets for approximations)
@@ -176,7 +176,7 @@ algo-approx/
   cp -r ../go-fft/internal/cpu/ internal/cpu/
   ```
 - [x] Update import paths in copied files:
-  - Change `github.com/MeKo-Christian/algo` → `github.com/meko-christian/algo-approx`
+  - Change `github.com/cwbudde/algo` → `github.com/cwbudde/algo-approx`
 - [x] Verify CPU detection compiles:
   ```bash
   go build ./internal/cpu/

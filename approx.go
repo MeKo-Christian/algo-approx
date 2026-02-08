@@ -1,6 +1,6 @@
 package approx
 
-import iapprox "github.com/meko-christian/algo-approx/internal/approx"
+import iapprox "github.com/cwbudde/algo-approx/internal/approx"
 
 // FastSqrt returns an approximate square root using the default precision.
 func FastSqrt[T Float](x T) T { return FastSqrtPrec(x, PrecisionAuto) }

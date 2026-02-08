@@ -1,4 +1,4 @@
-module github.com/meko-christian/algo-approx
+module github.com/cwbudde/algo-approx
 
 go 1.25.0
 

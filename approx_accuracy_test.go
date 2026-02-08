@@ -4,8 +4,8 @@ import (
 	"math"
 	"testing"
 
-	approx "github.com/meko-christian/algo-approx"
-	"github.com/meko-christian/algo-approx/internal/reference"
+	approx "github.com/cwbudde/algo-approx"
+	"github.com/cwbudde/algo-approx/internal/reference"
 )
 
 func TestAccuracy_Balanced_MinimumDigits(t *testing.T) {

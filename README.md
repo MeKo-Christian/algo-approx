@@ -9,7 +9,7 @@ Phase 1 MVP is implemented: `sqrt`, `invsqrt`, `log` (ln), and `exp` with `float
 ## Install
 
 ```bash
-go get github.com/meko-christian/algo-approx
+go get github.com/cwbudde/algo-approx
 ```
 
 ## Usage
@@ -20,7 +20,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/meko-christian/algo-approx"
+	"github.com/cwbudde/algo-approx"
 )
 
 func main() {
