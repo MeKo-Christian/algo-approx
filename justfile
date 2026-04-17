@@ -73,3 +73,7 @@ check-all: check test-arm64
 
 # Default target
 default: build
+
+fix:
+    just lint-fix
+    just fmt
