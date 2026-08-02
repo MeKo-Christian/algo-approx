@@ -999,13 +999,15 @@ measured maximum is exactly 39, at x ≈ 8.665, identically with AVX2 on, AVX2 o
 `purego`. That confirms the derivation rather than threatening it, but it leaves no headroom, so
 the same care applies here as to `hypTolTanh`: if this bound ever needs raising, re-derive it
 from a float64 reference rather than nudging the constant.
+
 - [x] **Replace the three `VDIVPS` with `VRCPPS` + two Newton-Raphson steps — measured, and
       REJECTED.** See §6.2.2. The ceiling is 6%, and the replacement costs more instructions
       than that is worth.
-- [ ] Consider the same treatment for `exp`'s sibling kernels on ARM64 (Phase 7); note the
-      Cascade Lake divider is slower than Alder Lake's, so any payoff is
-      microarchitecture-dependent and must be re-measured per target. Given §6.2.2, start by
-      measuring rather than by writing the reciprocal sequence.
+- [x] ARM64 kernels themselves — done in Phase 7, which was retargeted from the obsolete
+      `sqrt`/`invsqrt` plan onto `exp` and the fused pair. The divider question is carried
+      forward there as §7.2, still gated on measuring first: the Cascade Lake number in
+      §6.2.2 does not transfer to another microarchitecture, and its lesson is that divider
+      occupancy is not the critical path.
 - [ ] Single-output batch `tanh` and `log(cosh)`. The public batch API ships only the fused
       two-output form, so a caller who wants `tanh` alone must pass a reusable scratch buffer
       for the `log(cosh)` destination. Fixing it properly needs either a second assembly kernel
@@ -1035,11 +1037,11 @@ per `VDIVPS ymm`** — the instruction-table figure.
 
 **A2 — ablation ceiling, Xeon Gold 5218, idle.** All three `VDIVPS` replaced by `VMULPS` with
 identical operands and register allocation: numerically wrong, but the same instruction count
-and dependency structure *minus the divider*. This bounds what any reciprocal scheme could ever
+and dependency structure _minus the divider_. This bounds what any reciprocal scheme could ever
 recover. Same protocol as §6.0.1 (`GOMAXPROCS=1 taskset -c 0`, warm-up discarded, ten
 interleaved `-count=1` runs, benchstat), AVX2 dispatch re-checked before every round:
 
-|    N | base     | divider ablated |  delta |
+|    N |     base | divider ablated |  delta |
 | ---: | -------: | --------------: | -----: |
 |   64 | 198.4 ns |        185.6 ns | −6.48% |
 |  256 | 745.5 ns |        696.6 ns | −6.57% |
@@ -1056,7 +1058,7 @@ critical path.** This is precisely the error the ablation was designed to catch,
 the earlier estimate (~29% if the divider serialised perfectly) was ~5x too optimistic.
 
 **Why this closes the item rather than merely deferring it.** 6% is the ceiling for a
-replacement that costs *nothing*. `VRCPPS` + two Newton steps adds ~5–6 instructions per site,
+replacement that costs _nothing_. `VRCPPS` + two Newton steps adds ~5–6 instructions per site,
 ~18 per eight-element block against a current ~69, into a kernel already issuing at 2.10 IPC —
 so the realistic outcome is a **regression**. On top of that, two of the three divides feed
 `tanh`, whose measured full-domain drift is 2 ulp against a `hypTolTanh` of 2: zero headroom,
@@ -1075,26 +1077,144 @@ kernel runs at **2.10 IPC**. The premise was wrong at its root, not only in its 
 
 **Goal**: Cross-platform SIMD parity with ARM64.
 
-**Estimated LOC**: +600
+> **The original plan for this phase was obsolete before it started.** It listed
+> NEON `sqrt` and `invsqrt` as the deliverables. Those functions were removed
+> from the library in Phase 6 — they measured 4–19× _slower_ than the hardware
+> instructions they replaced, on every `GOARCH` Go supports (§6.2). There was
+> nothing left for a NEON `sqrt` to be faster than. The phase was retargeted at
+> the two kernels that actually exist: `exp` and the fused `tanh`/`log(cosh)`.
 
-## 7.1 NEON Implementations
+## 7.1 Delivered
 
-**Tasks**:
+- [x] `internal/simd/neon_arm64.h` — the hand-encoded NEON floating-point
+      instructions, with the encodings verified by disassembly rather than read
+      out of the ARM ARM.
+- [x] `internal/simd/exp32_arm64.{h,s,go}` — four-wide NEON `exp`, `EXPBODY`
+      shared with the fused kernel exactly as on amd64.
+- [x] `internal/simd/hyperbolic32_arm64.{s,go}` — the fused four-wide
+      `tanh`/`log(cosh)`.
+- [x] Dispatch on `HasNEON && !ForceGeneric`, resolved in `init()`, chaining to
+      the pure-Go kernel through the same bool-returning contract.
+- [x] Build tags on the fallbacks corrected from `!amd64 || purego` to
+      `(!amd64 && !arm64) || purego`.
+- [x] `exp32_arm64_test.go`, `hyperbolic32_arm64_test.go` — the amd64 test files'
+      counterparts, plus `TestNEONWordEncodings`, which has no amd64 analogue
+      and is explained below.
+- [x] **The suite has now been run on real arm64 hardware for the first time.**
+      Before this it was only ever cross-compiled and `vet`ed. It passed
+      unmodified, including `-race` and `-tags purego`.
 
-- [ ] Implement NEON sqrt (4x float32):
-  - [ ] `internal/simd/sqrt_arm64.go`
-  - [ ] `internal/simd/sqrt_arm64.s`
-  - [ ] Build tags: `//go:build arm64`
-- [ ] Implement NEON inverse sqrt
-- [ ] CPU feature detection for ARM64
-- [ ] Cross-platform testing using QEMU
-- [ ] Tests and benchmarks
+### 7.1.1 The constraint that shaped everything: no vector FP in the assembler
 
-## 7.2 Phase 7 Success Criteria
+Go's arm64 assembler accepts almost no vector floating-point arithmetic.
+`VADD`/`VSUB`/`VUMAX`/`VUMIN` are integer-only and `VFMLA`/`VFMLS` are the only
+floating-point arithmetic in its whole vector mnemonic set. There is no vector
+`FMUL`, `FADD`, `FSUB`, `FDIV`, `FMIN`, `FMAX`, `FABS`, `FCVTZS`, `SCVTF` or
+arithmetic right shift.
 
-- [ ] ✅ NEON implementations working
-- [ ] ✅ Performance parity with AVX2
-- [ ] ✅ Tests pass on ARM64 hardware or emulator
+So the kernels reach the hardware through `WORD`, behind named macros. That is
+unremarkable in itself — plenty of Go assembly does it — but it removes both
+`go vet` and the assembler as checks, which is why `TestNEONWordEncodings`
+exists: it builds a binary, disassembles the kernel with `go tool objdump`, and
+asserts the expected mnemonics come back. The disassembler decodes via
+`golang.org/x/arch/arm64`, an implementation independent of the assembler that
+produced the bytes, so agreement is evidence rather than a tautology. Every
+encoding here was pinned that way before being used.
+
+Two consequences for the port:
+
+- **No memory operands.** x86 folds a constant load into the arithmetic
+  instruction for free; NEON cannot. The fused kernel needs 26 constants and
+  there is nowhere near room for them. The way out is that `VFMLA` accumulates
+  into its destination, so a Horner step needs a fresh register for its
+  coefficient anyway — loading it from a table with `FMOVQ off(Rn), Fd` costs
+  exactly what copying it out of a register would, so parking coefficients in
+  registers would buy nothing even if there were room.
+- **No masked load or store.** The AVX2 tail uses `VMASKMOVPS`; the NEON tail
+  stages 1–3 elements through a 16-byte scratch buffer in the frame. The
+  cheaper-looking alternative — a final full vector starting at `n-4` — is
+  correct for disjoint slices and silently computes `f(f(x))` for up to three
+  elements when `dst == src`, which no two-distinct-slice test can catch.
+
+### 7.1.2 The bug worth remembering: contraction differs between the backends
+
+Go's arm64 backend contracts `x*y + z` into `FMADD`. The amd64 backend never
+does, because the amd64 baseline has no FMA. **The pure-Go kernels are therefore
+not the same computation on the two architectures**, and each assembly kernel
+has to match its own host's Go kernel rather than the other assembly kernel.
+
+`logCoshLarge32` ends with `a - ln2f + 2*w*(...)`. The AVX2 kernel evaluates that
+as a separate multiply and add, correctly for amd64. The first draft of the NEON
+kernel copied that sequence and disagreed with the Go kernel by 1 ulp of
+`log(cosh)` at `x = 0.81` — one element in twenty-five, in one output, caught by
+`TestBlockAndTailAgree`. Replacing the multiply-then-add with a single `VFMLA`
+fixed it.
+
+This is the thing to suspect first when a differential test on a new
+architecture fails by exactly one ulp on exactly one branch. "Transliterate the
+AVX2 kernel" is the right instruction only down to the point where contraction
+differs.
+
+### 7.1.3 Measured (Apple M5, macOS 26.6, Go 1.26.5)
+
+`GOMAXPROCS=1`, eleven separate runs with the first discarded, CV ≤ 1 % on the
+vector arms. The machine is a laptop and idle-sleeps: the first attempt at these
+numbers ran ~20 % slow and accumulated 7 minutes of CPU in 50 minutes of wall
+time. Everything below was taken under `caffeinate -dimsu`, and any future
+measurement on this class of machine must be too.
+
+ns per element, N = 4096:
+
+| kernel                   | pure-Go batch |      NEON | speedup |     non-batch baseline |
+| ------------------------ | ------------: | --------: | ------: | ---------------------: |
+| `exp`                    |         0.923 | **0.311** |   2.97× | 7.6× a `math.Exp` loop |
+| fused `tanh`+`log(cosh)` |         3.708 | **1.060** |   3.50× |    6.1× the scalar API |
+
+Three things worth reading off this:
+
+- **~3× against a four-lane ceiling is a larger fraction of the available
+  headroom than 11.7× is of AVX2's eight.** The gap to the amd64 figure is
+  mostly the denominator, not the kernel: the arm64 pure-Go baseline is itself
+  much faster because the compiler contracts its multiply-adds.
+- **The branch-mix result reproduces exactly.** The adversarial all-exp-branch
+  input measures 4342.4 ns against 4342.6 ns for the ramp at N = 4096. The two
+  architectures agreeing to four significant figures on a property that is about
+  the algorithm rather than the hardware is a good sign the blend behaves as
+  designed.
+- **Accuracy came out better than on amd64**, for the contraction reason above.
+  Swept over all 2³² bit patterns, the assembly is bit-identical to the pure-Go
+  kernel on all but 22 inputs for `exp`, all but 2 for `tanh`, and on **every**
+  input for `log(cosh)` — which on amd64 is the worst of the three at 4 ulp. The
+  survivors are ties in the range reduction, where the Go kernel's
+  add-a-magic-constant rounding fuses on arm64 and the assembly's `FRINTN` does
+  not. See ACCURACY.md.
+
+The two full sweeps take 11 s (`exp`) and 605 s (fused) of solid CPU. Run them
+under `caffeinate -dimsu`; the first attempt without it accumulated under 8
+minutes of CPU in 50 minutes of wall time and had to be abandoned.
+
+## 7.2 Remaining
+
+- [ ] Consider `FRECPE` + Newton for the three `FDIV`s — but per §6.2.2, measure
+      first. On Cascade Lake the divider was busy 42 % of cycles and removing it
+      entirely recovered only 6 %, because the out-of-order engine already hid
+      most of it. That number does not transfer to this core, and the point of
+      recording it is that occupancy is not the critical path.
+- [ ] Nothing here is gated on QEMU any more. Real hardware was used; an
+      emulator would not have caught the contraction bug, because it is a
+      property of the compiler rather than of the CPU.
+
+## 7.3 Phase 7 Success Criteria
+
+- [x] ✅ NEON implementations working
+- [x] ✅ Tests pass on ARM64 hardware
+- [x] ✅ **Not** "performance parity with AVX2" — that criterion was unreachable
+      by construction and has been dropped. NEON is 128-bit; AVX2 is 256-bit.
+      Half the lanes is half the ceiling, and a criterion that cannot be met by
+      a correct implementation is a criterion that only ever produces either a
+      false failure or a fudged number. The kernel is measured against the
+      pure-Go baseline on the same machine, which is the comparison that says
+      whether the assembly was worth writing.
 
 ---
 

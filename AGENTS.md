@@ -53,8 +53,9 @@ Three layers, and the boundaries exist for measured reasons:
    repeating it.
 2. **`internal/approx/`** — the algorithms. One file per operation, plus
    `batch.go` for the float64 slice loops.
-3. **`internal/simd/`** — float32-native _batch_ (slice) kernels, plus AVX2+FMA
-   assembly for `exp` and for the fused `tanh`/`log(cosh)`. **Reachable from the
+3. **`internal/simd/`** — float32-native _batch_ (slice) kernels, plus assembly
+   for `exp` and for the fused `tanh`/`log(cosh)`: AVX2+FMA on amd64 and NEON on
+   arm64. **Reachable from the
    public API** as of the batch entry points above: `FastExpBatch32` forwards to
    `simd.ExpFloat32` and `FastTanhLogCoshBatch32` to `simd.TanhLogCoshFloat32`.
    Two consequences worth knowing before editing here: this package's accuracy
@@ -92,6 +93,12 @@ overridable via `SetForcedFeatures` for tests) and `internal/reference`
   is the extension point for "this length/alignment isn't mine".
 - Tests that call assembly directly bypass dispatch and would SIGILL on a host
   without the features — guard them with a `requireAVX2FMA(tb)` skip.
+- **On arm64 the flag is not there to prevent a SIGILL.** Advanced SIMD is
+  mandatory in ARMv8-A and every instruction in the NEON kernels is base ASIMD
+  with no optional extension behind it, so `expUseNEON` exists to honour
+  `ForceGeneric` and nothing else. `requireNEON(tb)` skips rather than fails if a
+  host somehow reports no ASIMD, so an emulator produces a skip and not a
+  confusing failure.
 - `GODEBUG=cpu.avx2=off` exercises the fallback path for free (`x/sys/cpu`
   honours it), as does `-tags purego`.
 
@@ -128,6 +135,93 @@ Spot-checks that distinguish the right reading from a plausible wrong one:
 with `dst=2, src1=3, src2=5`, `VFMADD213PS` gives **11** and `VFNMADD231PS`
 gives **-13**; `VROUNDPS $0x08` maps `[2.5 3.5 -2.5 0.5 1.5]` to `[2 4 -2 0 2]`;
 `VDIVPS` with `a=10, b=4` gives **2.5** and not 0.4.
+
+### arm64: Go's assembler has almost no vector floating-point arithmetic
+
+This is the single fact that shapes every `*_arm64.s` file here, and it is not
+obvious until you try. The complete set of vector mnemonics `cmd/internal/obj/arm64`
+accepts is in the header comment of `internal/simd/neon_arm64.h`; the short
+version is that `VADD`/`VSUB`/`VUMAX`/`VUMIN` are **integer only**, and
+`VFMLA`/`VFMLS` are the only floating-point arithmetic in the list. There is no
+vector `FMUL`, `FADD`, `FSUB`, `FDIV`, `FMIN`, `FMAX`, `FABS`, `FCVTZS`, `SCVTF`
+or arithmetic right shift. `FMULS` and friends exist but are scalar.
+
+So the kernels reach the hardware through `WORD`, behind named macros in
+`neon_arm64.h`. Rules for touching that file:
+
+- **Arguments are register numbers, not names**, ordered `(m, n, d)` so an
+  invocation reads in the same Plan 9 order as the native mnemonics beside it.
+  Every call site carries a comment naming the registers — `go vet` cannot check
+  a `WORD`, and the numbers alone are unreadable.
+- **Verify a new encoding by assembling and disassembling it**, never by
+  reasoning from the ARM ARM. `go tool objdump` decodes via
+  `golang.org/x/arch/arm64`, an implementation independent of the one that
+  produced the bytes, so agreement is evidence rather than a tautology. The
+  probe loop is: put the candidate in a throwaway `TEXT`, then `go build`,
+  `go tool objdump -s`, and read the mnemonic back.
+- **`TestNEONWordEncodings` is the standing version of that check.** It builds a
+  binary, disassembles the kernel and asserts the expected mnemonics appear. It
+  is the only test that can tell "the encoding is right" from "the encoding is
+  wrong in a way the test grid does not reach".
+- **Constants must live in registers or be loaded.** NEON has no memory
+  operands, so the x86 habit of reading a constant straight into an arithmetic
+  instruction does not transfer. `FMOVQ off(Rn), Fd` — note `F`, not `V` — is
+  the one-instruction immediate-offset 128-bit load, and it costs exactly what
+  copying out of a register would, so Horner coefficients are read from a table
+  rather than parked in registers.
+- **There is no masked load or store.** The 1..3 element tail goes through a
+  16-byte scratch buffer in the frame. Do **not** replace it with a final
+  full-width vector starting at `n-4`: that is correct for disjoint slices and
+  silently computes `f(f(x))` for up to three elements when `dst == src`, which
+  no two-distinct-slice test can see.
+
+arm64 Plan 9 semantics pinned by the same probe method:
+
+| written                       | means                                                     |
+| ----------------------------- | --------------------------------------------------------- |
+| `VFMLA Vm.S4, Vn.S4, Vd.S4`   | `dst = dst + n*m` (accumulates into the dest)             |
+| `VFMLS Vm.S4, Vn.S4, Vd.S4`   | `dst = dst - n*m`                                         |
+| `VSUB Vm.S4, Vn.S4, Vd.S4`    | `dst = n - m`, **integer**                                |
+| `VBIT Vm.B16, Vn.B16, Vd.B16` | takes `n` where `m`'s bits are set, keeps `dst` elsewhere |
+| `FMOVQ off(Rn), Fd`           | 128-bit load; the destination is spelled `F`, not `V`     |
+
+Unlike x86 there is no `VMINPS`/`VMAXPS` NaN-asymmetry trap: AArch64's `FMIN`
+and `FMAX` are symmetric, so a swapped operand pair is merely wrong about which
+number it returns. They do return the **default** quiet NaN rather than the
+operand, so tests assert NaN-ness, not a payload.
+
+### arm64 contracts FMAs and amd64 does not — this changes what a differential test means
+
+Go's arm64 backend fuses `x*y + z` into a single `FMADD`; the amd64 backend
+never does, because the amd64 baseline has no FMA. The pure-Go kernels are
+therefore **not the same computation on the two architectures**, and each
+assembly kernel has to match its own host's Go kernel, not the other assembly
+kernel.
+
+Concretely: `logCoshLarge32` ends with `a - ln2f + 2*w*(...)`. The AVX2 kernel
+computes that as a separate multiply and add, which is right for amd64. The NEON
+kernel must use one `VFMLA`, because that is what the arm64 compiler emits. The
+first draft of `hyperbolic32_arm64.s` transliterated the AVX2 sequence and
+disagreed with the Go kernel by 1 ulp of `log(cosh)` at `x = 0.81` — one element
+in twenty-five, caught by `TestBlockAndTailAgree`, invisible in `tanh`.
+
+**So "transliterate the AVX2 kernel" is the right instruction only down to the
+point where contraction differs.** When a differential test fails by exactly one
+ulp on one branch, suspect this before suspecting the encoding.
+
+The payoff is that on arm64 the two kernels agree far more closely than on
+amd64. Swept over all 2³² bit patterns on both architectures:
+
+| kernel      | amd64 drift | amd64 identical | arm64 drift |   arm64 identical |
+| ----------- | ----------: | --------------: | ----------: | ----------------: |
+| `exp`       |       1 ulp |          99.95% |       1 ulp | all but 22 inputs |
+| `tanh`      |       2 ulp |          99.98% |       1 ulp |  all but 2 inputs |
+| `log(cosh)` |       4 ulp |          99.99% |       0 ulp |   **all of them** |
+
+Both full sweeps are opt-in (`ALGO_APPROX_EXHAUSTIVE=1`). On a laptop, run them
+under `caffeinate -dimsu`: the fused sweep takes 10 minutes of solid CPU, and on
+a machine that idle-sleeps it will otherwise take hours of wall time and look
+hung.
 If a new kernel disagrees with its Go twin by a wild margin, re-run these before
 suspecting the maths.
 

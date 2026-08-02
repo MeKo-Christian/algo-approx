@@ -120,11 +120,11 @@ The batch kernels are float32-native minimax polynomials with FMA-contracted
 evaluation. Those are different trade-offs, and they do not all fall the same
 way:
 
-| Function          | scalar `*32`, Balanced | batch |            better |
-| ----------------- | ---------------------: | ----: | ----------------: |
-| `exp`             |                 38 ulp | 1 ulp | **batch**, by ~28x |
-| `tanh`            |                  1 ulp | 1 ulp |            neither |
-| `log(cosh)`       |                  0 ulp | 2 ulp (4 at the seam) | **scalar** |
+| Function    | scalar `*32`, Balanced |                 batch |             better |
+| ----------- | ---------------------: | --------------------: | -----------------: |
+| `exp`       |                 38 ulp |                 1 ulp | **batch**, by ~28x |
+| `tanh`      |                  1 ulp |                 1 ulp |            neither |
+| `log(cosh)` |                  0 ulp | 2 ulp (4 at the seam) |         **scalar** |
 
 So **do not reach for the batch path for accuracy alone.** For `exp` it is a
 large win, and the reason is the basis rather than the width: the balanced
@@ -158,6 +158,43 @@ seam where the worst cases live the assembly is fractionally _closer_ to the
 truth than the pure-Go kernel on both outputs. So `FastExpBatch32` gives the
 same answer to within 1 ulp whether or not the host has AVX2, and neither
 answer is the worse one for having taken the vector path.
+
+### arm64 / NEON
+
+The NEON kernels agree with the pure-Go kernels far more closely than the AVX2
+ones do, and the reason is the same mechanism read the other way round: Go's
+arm64 backend **does** contract multiply-adds, so both sides evaluate the same
+fused expressions instead of one side rounding twice where the other rounds
+once.
+
+Measured on an Apple M5:
+
+All three figures below are full sweeps over every one of the 2³² float32 bit
+patterns, i.e. all 4 278 190 082 non-NaN inputs — the same method as the amd64
+table above, not a sample:
+
+| kernel      | max drift vs Go | inputs that differ at all |
+| ----------- | --------------: | ------------------------: |
+| `exp`       |           1 ulp |   22 out of 4 278 190 082 |
+| `tanh`      |           1 ulp |    2 out of 4 278 190 082 |
+| `log(cosh)` |           0 ulp |  **none — bit-identical** |
+
+Compare the amd64 row for the same kernels: 1 / 2 / 4 ulp and 99.95 / 99.98 /
+99.99 % bit-identical. `log(cosh)` in particular goes from the _worst_ of the
+three on amd64 to exactly equal on arm64.
+
+The handful of disagreements that remain are all the same thing: ties in the
+range reduction. The Go kernel rounds `x*log2e` with the add-a-magic-constant
+trick, which on arm64 becomes a fused `fma(x, log2e, magic)` and so rounds the
+product exactly once, while the assembly uses `FRINTN` on the already-rounded
+product. At a tie the two land on opposite sides, the reduced argument differs
+by one, and that costs the last bit. `tanh` inherits only two such inputs
+because its large branch is a division that mostly absorbs them; `log(cosh)`
+inherits none.
+
+Getting that agreement required one deliberate departure from the AVX2 kernel
+rather than a faithful transliteration of it; see the note in
+`internal/simd/hyperbolic32_arm64.s` about where contraction differs.
 
 `FastLog32`'s sweep drops the band $|\ln x| < 1$. There the output passes
 through zero, where any nonzero absolute error is an unbounded ulp count: the

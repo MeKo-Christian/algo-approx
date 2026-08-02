@@ -2,7 +2,7 @@
 
 `FastSqrt`, `FastInvSqrt` and `FastRecip` (and their internal kernels) were
 removed from this library. They were measured at roughly 6.9x, 4.3x and 9x
-*slower* than the hardware they were meant to replace: `math.Sqrt` compiles to
+_slower_ than the hardware they were meant to replace: `math.Sqrt` compiles to
 `SQRTSD` and `1.0/x` to `DIVSD`, and Go's compiler intrinsifies `math.Sqrt` on
 every `GOARCH` it supports. There is no target on which the approximations win,
 so they were deleted outright rather than deprecated.
