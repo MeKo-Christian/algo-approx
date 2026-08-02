@@ -1,0 +1,269 @@
+# AGENTS.md
+
+This file provides guidance to AI agents (Claude Code, Codex etc.) when working with code in this repository.
+
+## What this is
+
+`github.com/cwbudde/algo-approx` — fast, allocation-free scalar math approximations
+(`sqrt`, `invsqrt`, `log`, `exp`, trig/arctrig, `tanh`, `logcosh`, `recip`, `power`),
+generic over `float32`/`float64`, with a `Precision` knob. Ported from
+`reference_approx.pas` (a read-only Pascal source kept for reference; see the
+translation guide at the end of `PLAN.md`). `PLAN.md` is the phase roadmap and
+records which decisions were already settled by measurement.
+
+## Commands
+
+`just` is the entry point (`justfile`). The important ones:
+
+```bash
+just build              # go build -v ./...
+just test               # go test -v -race -count=1 ./...
+just test-consumer      # build+vet+test the nested consumerbench module (see below)
+just lint               # golangci-lint, root AND consumerbench
+just fix                # lint-fix + treefmt
+just check              # test + test-consumer + lint + cover  <- run before claiming done
+just bench-published    # GOMAXPROCS=1 -benchtime=400ms -count=4 .   (README's method)
+just bench-consumer     # same, from consumerbench/ — the numbers that matter
+just test-arm64         # cross-arch run under qemu-aarch64-static
+```
+
+Single test / package:
+
+```bash
+go test -run TestFastTanh_SaturatesExactly ./...
+go test ./internal/approx/ -run TestLog
+go test ./internal/simd/ -run TestExpAVX2 -v
+go test -tags purego ./internal/simd/     # compile the assembly out
+go test -run=^$ -fuzz=FuzzFastLog -fuzztime=30s .
+```
+
+## Architecture
+
+Three layers, and the boundaries exist for measured reasons:
+
+1. **`approx.go` (root)** — public API only. Every function is a one-line forward
+   to `internal/approx`, in three flavours per operation: generic `FastX[T]`,
+   precision-taking `FastXPrec[T]`, and concrete `FastX32`/`FastX64`.
+   `PrecisionAuto` is resolved to `PrecisionBalanced` here by
+   `normalizePrecision` (`options.go`).
+2. **`internal/approx/`** — the algorithms. One file per operation.
+3. **`internal/simd/`** — float32-native _batch_ (slice) kernels, plus an
+   AVX2+FMA assembly `exp`. **Not reachable from the public API yet** — the
+   batch API's naming is deliberately deferred (PLAN.md §6.2).
+   This layer exists because it is where the remaining performance is: the
+   scalar kernels are at or below `math`'s cost, while AVX2 `exp` measures
+   **11.5–12.3x** over the pure-Go batch loop and **44–49x** over the scalar API
+   (`PLAN.md` §6.0 has the table and two caveats on how to read it).
+   `dst` and `src` must be **identical or non-overlapping** — an 8-wide
+   load/store block is not elementwise, so partial overlap is correct in the Go
+   kernel and garbage in the vector one, and two-distinct-slice tests never
+   catch it.
+
+Supporting: `internal/cpu` (CPUID feature detection, `sync.Once`-cached,
+overridable via `SetForcedFeatures` for tests) and `internal/reference`
+(`math`-based references + `MeasureAccuracy`, used by the accuracy tests and by
+`ACCURACY.md`).
+
+### SIMD dispatch rules
+
+- **Gate on `HasAVX2 && HasFMA`, never `HasAVX2` alone.** FMA is a separate
+  CPUID bit. Every real AVX2 CPU ships FMA3, but hypervisors and emulators can
+  mask it, and an FMA opcode then faults with SIGILL. `internal/cpu` was
+  vendored before it had `HasFMA`; it does now.
+- **Resolve the kernel once, in `init()`.** `DetectFeatures()` takes an
+  `RWMutex.RLock` _plus_ a full `Mutex.Lock` on every call. Calling it per batch
+  (let alone per element) costs more than a small kernel does, and would make a
+  fast kernel look slow at exactly the sizes that matter.
+- Keep the **bool-returning contract**: the kernel returns `false` when it
+  declines, and the Go side chains to the pure-Go kernel. It costs nothing and
+  is the extension point for "this length/alignment isn't mine".
+- Tests that call assembly directly bypass dispatch and would SIGILL on a host
+  without the features — guard them with a `requireAVX2FMA(tb)` skip.
+- `GODEBUG=cpu.avx2=off` exercises the fallback path for free (`x/sys/cpu`
+  honours it), as does `-tags purego`.
+
+### Writing the pure-Go batch kernels
+
+Two non-obvious constraints, both discovered by reading the generated code:
+
+- **The kernels do not fit Go's inline budget** (139 and 361 against a budget of
+  80). Written as one function per element, the batch loop becomes eight calls
+  per block and measures Go's calling convention rather than its arithmetic.
+  They are therefore split into small inlinable stages that the loop splices out
+  lane by lane. Verify with `-gcflags=-m` that no `CALL` survives in the block body.
+- **`if x > HI { x = HI }` is not branchless** — Go emits `UCOMISS`+`JLS`, two
+  data-dependent branches per element. The builtin `min`/`max` compile to a
+  straight-line `MINSS` sequence _and_ give the NaN propagation the kernel wants.
+
+### Plan 9 operand semantics — verified on this hardware, don't re-derive
+
+Plan 9 reverses Intel's operand order, which makes the three-operand FMA forms
+easy to get backwards. These were pinned by an assembled probe, not reasoned out:
+
+| written                           | means                                                      |
+| --------------------------------- | ---------------------------------------------------------- |
+| `VFMADD213PS Ysrc2, Ysrc1, Ydst`  | `dst = src1*dst + src2`                                    |
+| `VFNMADD231PS Ysrc2, Ysrc1, Ydst` | `dst = dst - src1*src2`                                    |
+| `VPSUBD Ysrc2, Ysrc1, Ydst`       | `dst = src1 - src2`                                        |
+| `VROUNDPS $0x08, Ysrc, Ydst`      | round to nearest, ties to **even**, no precision exception |
+
+Spot-checks that distinguish the right reading from a plausible wrong one:
+with `dst=2, src1=3, src2=5`, `VFMADD213PS` gives **11** and `VFNMADD231PS`
+gives **-13**; `VROUNDPS $0x08` maps `[2.5 3.5 -2.5 0.5 1.5]` to `[2 4 -2 0 2]`.
+If a new kernel disagrees with its Go twin by a wild margin, re-run these before
+suspecting the maths.
+
+`go vet`'s `asmdecl` pass checks FP offsets and frame sizes — it requires the
+`dst_base+0(FP)` / `dst_len+8(FP)` spelling for slice arguments. (algo-fft's
+`dst+0(FP)` style is what asmdecl flags; this repo uses the vet-clean form.)
+
+### The kernel + shim invariant — do not break this
+
+Most algorithms are **a non-generic `float64` kernel plus a tiny generic shim**:
+
+```go
+func Log[T Float](x T, prec Precision) T { return T(log64(float64(x), prec)) }
+```
+
+Go compiles a generic body once per gcshape and calls it through a runtime
+dictionary, which the compiler will not inline across a package boundary. With
+the arithmetic inside the generic body, every consumer paid a call frame it
+could not remove — the library won its own benchmarks and lost every caller's.
+Keeping the body non-generic makes the shim small enough to inline into an
+external caller.
+
+- Applies to `Log`, `Exp`, `Tanh`, `LogCosh`, `Recip`.
+- `Sqrt`, `InvSqrt` and the trig family are genuinely generic (they use
+  `selectImpl` in `dispatch.go` to pick a fast/balanced/high closure) and were
+  intentionally left alone.
+- **The property is gated statically**, not by timings:
+  `consumerbench/inline_test.go:TestCrossModuleInlining` parses
+  `go build -gcflags=-m` output and fails if the shims stop inlining. If you
+  move arithmetic into a generic body, that test tells you.
+
+**Corollary: never write scalar assembly here.** A Plan 9 ABI0 function can never
+be inlined, so it is permanently outside the invariant above. For a ~5 ns
+operation the call frame alone eats the win — measured, the scalar kernels are
+already at or below `math`'s cost (`FastExp64` 0.97x, `FastTanh64` 0.88x), so
+there is nothing for scalar asm to win back. Assembly pays **only** on batch
+(slice) kernels, where one call amortises over thousands of elements. See
+`PLAN.md` §6.0.
+
+### Precision must not be a runtime argument in a loop
+
+`FastExpPrec_{Fast,Balanced,High}` measure 12.2 / 14.7 / 16.8 ns against 5.6 ns
+for `FastExp64`. Passing `prec` as a runtime value defeats constant-folding of
+the `switch` in `expPoly` — **the dispatch costs more than the polynomial it
+selects.** Any batch API must resolve precision once per call and run a
+monomorphic inner loop. Note `selectImpl` (`internal/approx/dispatch.go`)
+returns a `func(T) T`; an indirect call per element would defeat the whole point
+of a batch API.
+
+### `consumerbench/` is a separate Go module
+
+It imports algo-approx by module path (with a `replace ../`) so nothing gets
+same-package inlining. Consequence: **`go build ./...`, `go test ./...` and
+`golangci-lint run` at the root never descend into it.** Anything touching the
+public API surface or the shim structure must also be run through
+`just test-consumer`. `consumerbench/callsites.go` holds the call sites the
+inlining test inspects — keep a call site there for any new public entry point
+that follows the kernel+shim pattern.
+
+## Invariants the tests pin (don't "optimize" these away)
+
+- **Zero allocations** for every public function, float32 and float64 —
+  `approx_alloc_test.go`.
+- **`FastTanh`/`FastLogCosh` are a consistent pair.** `tanh` is exactly
+  `d/dx log(cosh x)`; both are built from one shared `u = exp(-2|x|)` and share
+  one branch point (`0.625`, identical in scalar and SIMD paths) so the identity
+  survives approximation. A downstream discrete-gradient energy scheme depends
+  on it. Also: `FastTanh`'s odd symmetry is bit-exact and its saturation at
+  `|x| >= 19.0625` is exact; `FastLogCosh` never forms `cosh` (no overflow at
+  `|x| > 710`).
+  **`19.0625` is a float64 constant.** In float32, `tanh` rounds to exactly
+  `1.0f` from `|x| >= 9.010914` — carrying 19.0625 into a float32 kernel buys a
+  10-wide band of inputs that can only ever produce `1.0f`. The float32 batch
+  kernel needs no saturation constant at all: because both branches are always
+  evaluated, `1 - 2u/(1+u)` saturates to exactly `1.0f` on its own at that
+  crossover. A test pins the crossover so it cannot drift.
+- **float32 through the scalar API is only ~5.5 decimal digits, not 7.** Measured
+  in ulps at `PrecisionBalanced`: `FastExp32` **38**, `FastLog32` **103**,
+  `FastTanh32` 1, `FastLogCosh32` 0. The widening to float64 is not the problem —
+  the _kernel's own_ truncation is: Balanced `expPoly` is a degree-5 Taylor whose
+  error is `|r|⁶/720 = 2.4e-6` at `|r| <= ln2/2`, i.e. ~20 float32 ulp before any
+  rounding. The float32-native **minimax** kernels in `internal/simd` measure
+  **1 ulp** — roughly 28x better _and_ faster, because Taylor is simply the wrong
+  basis. Going minimax at equal degree buys ~3 ulp for free; degrees 6 and 7 are
+  indistinguishable in float32 because evaluation rounding, not truncation,
+  dominates past degree 6.
+- **Subnormals.** `log64` rescales subnormal inputs before reading the exponent
+  field; without it the result is off by up to ~36 nats (Go's own `math.Log` has
+  this bug on amd64). `FastRecip` has its own subnormal handling.
+- **SIMD ↔ Go kernel agreement.** The AVX2 `exp` is verified against the pure-Go
+  kernel over all 2³² float32 bit patterns: max 1 ulp, differing only where the
+  assembly contracts FMAs. `decl_text_test.go` guards against a body-less Go
+  declaration losing its `TEXT` symbol. Read the header comment in
+  `exp32_amd64.s` before editing it — operand order in `VMINPS`/`VMAXPS`, the
+  two-step `2^k` reconstruction and VEX purity + `VZEROUPPER` are each
+  load-bearing and each fail silently.
+
+## Benchmarking on this hardware is a trap — read before running one
+
+The dev box is a **12th Gen i7-1255U**: P-cores on CPUs 0–3 (4.7 GHz), E-cores on
+4–11 (3.5 GHz, 400 MHz at idle). An unpinned `go test -bench` migrates between
+them mid-run. Observed on this repo, unpinned: the _same_ `FastLog` benchmark
+reported **364 ns/op and 8 ns/op**, and `BenchmarkOverhead` — a single array
+index — reported **9.886 ns/op**. Those swings are the same size as, or larger
+than, most effects worth measuring. **This is not irreducible noise; it is
+fixable, and until it is fixed no number means anything.**
+
+```bash
+uptime                                   # 1. ABORT if load average is not near-idle;
+                                         #    this box is shared and other users' QEMU
+                                         #    suites have parked it at load 50.
+go test -c -o /tmp/x.test ./internal/simd/
+for i in $(seq 10); do                   # 2. separate invocations, NOT -count=10
+  taskset -c 2 /tmp/x.test -test.run='^$' -test.bench=. \
+      -test.benchtime=200ms -test.count=1 >> /tmp/b.txt
+done
+benchstat /tmp/b.txt                     # 3. and check the CV it prints
+```
+
+- **Pin to a P-core.** Pinning collapsed variance from >2x to ~±10%.
+- **`-count=10` in one invocation aliases thermal drift with arm ordering** — it
+  runs arm A ten times, then B, then C, so later arms run on a hotter chip. Use
+  separate `-count=1` runs; benchstat handles interleaved samples.
+- **Discard the first sample after a pin change** (frequency ramp — reliably high).
+- **Report ns/_element_.** With `b.Run("n=…")` sub-benchmarks `ns/op` is per batch
+  call, so N=64 and N=1M are not comparable. Use `b.SetBytes(n*4)`.
+- **Pre-touch destination buffers** outside the timed region, or the first
+  iterations measure page faults (milliseconds at N=1M).
+- Quirk: `taskset -c 0 go test …` fails here with
+  `CPU-Liste konnte nicht eingelesen werden: 0--1` (a wrapper artifact around the
+  `go` command); `taskset -c 0,1 go …` works, as does taskset on a compiled
+  binary. A _silent_ pinning failure invalidates the whole session — check it runs.
+- AVX2 frequency licensing is a **non-issue** on Alder Lake client (that was
+  Skylake-SP server), but these numbers will not transfer to a Xeon.
+- `just bench-published` / `just bench-consumer` do **not** pin. They are the
+  documented method for the README tables; add pinning before trusting a delta.
+
+## Documentation is measured, not asserted
+
+`README.md` and `ACCURACY.md` contain real numbers with dates, a stated CPU and
+a stated method (harness overhead subtracted, minimum over ≥24 samples,
+`GOMAXPROCS=1`). Several sections exist specifically to record that an
+optimization was tried and _lost_ (`FastSqrt`, `FastInvSqrt`, `FastRecip` are
+all slower than `math` / `1/x` and say so). If you change a kernel's cost or
+accuracy, re-measure with `just bench-published` + `just bench-consumer` and
+update the tables with the new date and CPU — do not hand-edit a number, and do
+not add a performance claim that isn't backed by a run.
+
+## Style
+
+- `gofumpt` + `goimports`/`gci`, run via `just fmt` (treefmt).
+- golangci-lint runs with `default = 'all'`; see `.golangci.toml` for the
+  disabled set. Prefer a targeted `//nolint:linter // reason` over broadening the
+  config.
+- Comments here carry the _why_ — a rejected alternative, a measurement, a
+  failure mode. Match that density in the numeric code; it is the repository's
+  main defence against a plausible-looking edit that quietly costs ulps.
