@@ -76,6 +76,49 @@ by its exponential branch: the `log(cosh)` series in $z = x^2$ only gains a
 factor ~7 per term at the branch point $z = 0.39$, so chasing it further costs
 more than it is worth.
 
+## float32 (2026-08-02)
+
+The `*32` entry points are measured separately, in **ulps of float32** rather
+than in absolute error. An absolute gate quietly changes meaning as the output
+magnitude moves, and half an ulp is the floor no float32 kernel can go below,
+so an ulp count is the only figure that says whether the remaining error is the
+kernel's or the format's.
+
+The reference is the float64 result **rounded to float32** — `float32(math.Exp(float64(x)))`,
+not `math.Exp` itself. Comparing against the float64 value would fold float32's
+own ~6e-8 representation gap into every sample and report the format's error
+instead of the approximation's.
+
+Sample sets mirror the float64 ones at 4001 points, with one exception noted
+below.
+
+| Function        | Fast | Balanced | High |
+| --------------- | ---: | -------: | ---: |
+| `FastExp32`     | 9414 |       38 |    1 |
+| `FastLog32`     | 14876 |     103 |    1 |
+| `FastTanh32`    |  197 |        1 |    0 |
+| `FastLogCosh32` | 1162 |        0 |    0 |
+
+`FastTanh32` and `FastLogCosh32` are thin shims over float64 kernels that are
+already accurate to 2.5e-9 and 3.1e-9, so at `PrecisionBalanced` the float32
+result is the correctly rounded one — `FastLogCosh32` is bit-identical to the
+rounded reference across the whole $[-12, 12]$ consumer domain. `FastExp32`'s
+38 ulp is not a float32 artefact either: the balanced exp polynomial is good to
+3.2e-6 relative in float64 too, which is ~27 float32 ulp.
+
+This also settles a question the float64 table invites: the existing
+`MaxAbsError <= 1e-7` gate on `tanh` is **not** too tight for float32. `tanh`
+outputs live in $[-1, 1]$, where float32 spacing just below 1.0 is 5.96e-8, so
+1e-7 is about 1.7 ulp — and the measured float32 `MaxAbsError` is exactly one
+spacing, 5.96e-08.
+
+`FastLog32`'s sweep drops the band $|\ln x| < 1$. There the output passes
+through zero, where any nonzero absolute error is an unbounded ulp count: the
+full sweep reads 51138 ulp, all of it at $x \approx 1.0035$, and it measures
+the crossing rather than the kernel. That band is gated on absolute error
+instead, at a measured 1.242e-05 over $[10^{-1}, 10^{1}]$ — the same
+`MaxRelError`-versus-`MaxAbsError` caveat that applies to `FastLog` in float64.
+
 ## The `FastTanh` / `FastLogCosh` / `FastRecip` guarantees
 
 Beyond the error table these carry structural guarantees that hold at every

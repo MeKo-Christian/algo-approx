@@ -27,6 +27,11 @@ type Features struct {
 	HasAVX    bool // Advanced Vector Extensions
 	HasAVX2   bool // Advanced Vector Extensions 2
 	HasAVX512 bool // Advanced Vector Extensions 512
+	// HasFMA reports fused multiply-add (FMA3) support. This is a separate CPUID
+	// bit from AVX2: every real AVX2 CPU also ships FMA3, but virtual machines and
+	// emulators can mask it, and executing an FMA opcode there faults with SIGILL.
+	// AVX2 kernels must therefore gate on HasAVX2 && HasFMA.
+	HasFMA bool
 
 	// ARM SIMD features
 	HasNEON bool // ARM Advanced SIMD (NEON)
@@ -120,6 +125,12 @@ func HasAVX2() bool {
 // HasAVX512 returns true if the CPU supports AVX-512 instructions.
 func HasAVX512() bool {
 	return DetectFeatures().HasAVX512
+}
+
+// HasFMA returns true if the CPU supports FMA3 (fused multiply-add) instructions.
+// This is a separate CPUID bit from AVX2 and must be checked independently.
+func HasFMA() bool {
+	return DetectFeatures().HasFMA
 }
 
 // HasNEON returns true if the CPU supports ARM NEON (Advanced SIMD) instructions.

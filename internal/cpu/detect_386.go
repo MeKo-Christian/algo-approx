@@ -21,6 +21,7 @@ func detectFeaturesImpl() Features {
 		HasAVX:       cpu.X86.HasAVX,
 		HasAVX2:      cpu.X86.HasAVX2,
 		HasAVX512:    cpu.X86.HasAVX512,
+		HasFMA:       cpu.X86.HasFMA,
 		Architecture: runtime.GOARCH,
 	}
 }

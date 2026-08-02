@@ -62,6 +62,7 @@ func TestQueryFunctions(t *testing.T) {
 		{"HasAVX", HasAVX(), features.HasAVX},
 		{"HasAVX2", HasAVX2(), features.HasAVX2},
 		{"HasAVX512", HasAVX512(), features.HasAVX512},
+		{"HasFMA", HasFMA(), features.HasFMA},
 		{"HasNEON", HasNEON(), features.HasNEON},
 	}
 
@@ -73,6 +74,27 @@ func TestQueryFunctions(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestHasFMAConsistency verifies the HasFMA() accessor matches the detected field.
+//
+// FMA is a separate CPUID bit from AVX2, so no implication between the two is
+// asserted here: virtual machines and emulators may report AVX2 while masking FMA.
+//
+//nolint:paralleltest
+func TestHasFMAConsistency(t *testing.T) {
+	// Not parallel: tests manipulate global detection state.
+	t.Cleanup(ResetDetection)
+
+	ResetDetection()
+
+	features := DetectFeatures()
+
+	if HasFMA() != features.HasFMA {
+		t.Errorf("HasFMA() = %v, want %v", HasFMA(), features.HasFMA)
+	}
+
+	t.Logf("HasAVX2=%v HasFMA=%v", features.HasAVX2, features.HasFMA)
 }
 
 // TestForcedFeatures tests that SetForcedFeatures overrides detection.
@@ -129,6 +151,7 @@ func TestForcedFeatures(t *testing.T) {
 			HasSSE41:     true,
 			HasAVX:       true,
 			HasAVX2:      true,
+			HasFMA:       true,
 			Architecture: "amd64",
 		})
 
@@ -156,8 +179,34 @@ func TestForcedFeatures(t *testing.T) {
 			t.Error("Expected HasAVX2() to return true")
 		}
 
+		if !HasFMA() {
+			t.Error("Expected HasFMA() to return true")
+		}
+
 		if HasAVX512() {
 			t.Error("Expected HasAVX512() to return false")
+		}
+	})
+
+	// Test AVX2 without FMA: a VM or emulator can mask the FMA CPUID bit even
+	// when AVX2 is reported, so the two flags must remain independent.
+	t.Run("AVX2WithoutFMA", func(t *testing.T) {
+		// Not parallel: tests manipulate global detection state.
+		defer ResetDetection()
+
+		SetForcedFeatures(Features{ //nolint:exhaustruct
+			HasSSE2:      true,
+			HasAVX:       true,
+			HasAVX2:      true,
+			Architecture: "amd64",
+		})
+
+		if !HasAVX2() {
+			t.Error("Expected HasAVX2() to return true")
+		}
+
+		if HasFMA() {
+			t.Error("Expected HasFMA() to return false when masked independently of AVX2")
 		}
 	})
 
@@ -325,6 +374,7 @@ func TestFeaturesStructFields(t *testing.T) {
 		HasAVX:       true,
 		HasAVX2:      true,
 		HasAVX512:    true,
+		HasFMA:       true,
 		HasNEON:      true,
 		ForceGeneric: true,
 		Architecture: "test",
@@ -357,6 +407,10 @@ func TestFeaturesStructFields(t *testing.T) {
 
 	if !features.HasAVX512 {
 		t.Error("HasAVX512 field not working")
+	}
+
+	if !features.HasFMA {
+		t.Error("HasFMA field not working")
 	}
 
 	if !features.HasNEON {

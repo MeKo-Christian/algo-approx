@@ -810,32 +810,74 @@ algo-approx/
 
 **Goal**: Add vectorized implementations for batch processing on x86-64.
 
-**Estimated LOC**: +800 (assembly + wrappers)
+## 6.0 Spike result (2026-08-02) — **GATE PASSED**
 
-## 6.1 AVX2 Implementations
+A timeboxed spike asked whether hand-written Plan 9 assembly buys anything here. Answer:
+**scalar assembly, no; batch assembly, decisively yes.**
 
-**Tasks**:
+Go assembly functions cannot be inlined, and this repo's core property is cross-module inlining
+(gated statically by `consumerbench/inline_test.go`). So scalar asm would *lose*. The win is
+only reachable through batch APIs, which did not exist.
 
-- [ ] Implement AVX2 sqrt (4x float32 per instruction):
-  - [ ] `internal/simd/sqrt_amd64.go` - Go wrappers
-  - [ ] `internal/simd/sqrt_amd64.s` - Assembly implementation
-  - [ ] Build tags: `//go:build amd64`
-- [ ] Implement AVX2 inverse sqrt
-- [ ] Implement batched API:
-  ```go
-  func FastSqrtBatch32(dst, src []float32)
-  func FastInvSqrtBatch32(dst, src []float32)
-  ```
-- [ ] CPU feature detection integration
-- [ ] Fallback to scalar for non-AVX2 CPUs
-- [ ] Tests and benchmarks
+Measured on i7-1255U, `taskset -c 2` (P-core), `GOMAXPROCS=1`, medians of 10 runs,
+**ns per element**:
 
-## 6.2 Phase 6 Success Criteria
+| N | scalar API | pure-Go batch | AVX2 asm | AVX2 / batch-Go | AVX2 / scalar |
+|---:|---:|---:|---:|---:|---:|
+| 64 | 24.97 | 6.19 | **0.536** | 11.5x | 46.6x |
+| 256 | 24.62 | 6.56 | **0.563** | 11.6x | 43.7x |
+| 1024 | 25.38 | 6.35 | **0.520** | 12.2x | 48.8x |
+| 4096 | 24.41 | 6.07 | **0.520** | 11.7x | 46.9x |
+| 65536 | 24.40 | 6.00 | **0.507** | 11.8x | 48.2x |
+| 1048576 | 24.61 | 6.69 | **0.545** | 12.3x | 45.1x |
 
-- [ ] ✅ AVX2 sqrt and invsqrt working
-- [ ] ✅ 4-8x speedup for batched operations
-- [ ] ✅ Graceful fallback on non-AVX2 CPUs
-- [ ] ✅ Tests pass on both AVX2 and non-AVX2 systems
+The gate was "≥4x over a correctly-written pure-Go float32 batch baseline at N ≤ 4096". Cleared
+by roughly 3x margin.
+
+**Two honest caveats on that number:**
+
+1. **11.7x exceeds the 8-lane theoretical ceiling**, so it is not all vectorization. The
+   pure-Go baseline emits ~63 instructions/element where the asm needs ~3.1 (25 instructions ÷
+   8 lanes). Part of the ratio is baseline looseness. Against a hypothetically-tight scalar Go
+   baseline the figure would be nearer 6x — still well clear of the gate.
+2. **No bandwidth collapse appeared at N=1M**, contrary to the prediction. At 0.545 ns/elem ×
+   8 B/elem the kernel moves ~14.7 GB/s, under this laptop's ~25 GB/s DRAM ceiling — it is not
+   fast enough to saturate memory, so the ratio holds all the way up.
+
+CV was 14–32% (machine shared with other users' jobs), but the effect is an order of magnitude
+larger than the noise. Benchmarks verified not to be dead code: all outputs written,
+`exp(-10)=4.54e-5`, `exp(0)=1`, `exp(9.995)=21919`.
+
+Fused tanh+logCosh, **pure Go only so far** (no asm kernel yet): 2.6–3.2x over the scalar API.
+
+## 6.1 Delivered
+
+- [x] `internal/simd/` package with float32-**native** batch kernels (the scalar API widens
+      float32 → float64; the batch path does not)
+- [x] `internal/simd/exp32_amd64.s` — AVX2+FMA exp, `EXPBODY` macro shared with a `VMASKMOVPS`
+      masked tail, `VZEROUPPER` before every `RET`, VEX-only (disassembly-verified)
+- [x] `init()`-resolved dispatch on `HasAVX2 && HasFMA && !ForceGeneric`; bool-return contract
+      chaining to the pure-Go kernel
+- [x] `purego` / non-amd64 fallback; `decl_text_test.go` guarding decl↔asm drift
+- [x] `HasFMA` added to `internal/cpu` (FMA is a separate CPUID bit; VMs can mask it → SIGILL)
+- [x] float32 ulp accuracy harness (the suite previously had **zero** float32 coverage)
+- [x] Fused `TanhLogCoshFloat32` in pure Go, sharing `u = exp(-2|x|)` between both outputs
+
+**Accuracy**: asm vs pure-Go verified over **all 2³² float32 bit patterns** — max **1 ulp**,
+99.95% bit-identical. The residual is FMA contraction (asm fuses; Go's amd64 backend never
+does). exp is 1 ulp vs a float64 reference across the whole domain; tanh 1 ulp; logCosh 2 ulp
+(4 at the branch seam).
+
+## 6.2 Remaining
+
+- [ ] AVX2 fused tanh/logCosh kernel — **this is the informative one.** exp is branch-free and
+      only proved the asm pipeline (ABI, tail, dispatch, VEX purity). tanh must evaluate the
+      rational core *and* the exp branch for all lanes and blend; that cost is still unmeasured.
+- [ ] Public batch API design/naming (deliberately deferred out of the spike)
+- [ ] Re-measure on an idle machine to tighten CV
+- [ ] **Do not** pursue `sqrt`/`invsqrt`/`recip`: measured 6.9x / 4.3x / 9x *slower* than the
+      hardware instructions they replace. `VSQRTPS`/`VDIVPS` vectorize too, so SIMD cannot
+      rescue them. Reconsider whether they should ship at all.
 
 ---
 
