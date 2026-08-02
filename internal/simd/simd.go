@@ -87,5 +87,5 @@ func TanhLogCoshFloat32(dstTanh, dstLogCosh, src []float32) {
 
 	n := len(src)
 
-	tanhLogCoshBatch32Go(dstTanh[:n], dstLogCosh[:n], src[:n])
+	tanhLogCoshBatch32(dstTanh[:n], dstLogCosh[:n], src[:n])
 }

@@ -112,7 +112,7 @@ func BenchmarkExp_BatchDispatch(b *testing.B) {
 	})
 }
 
-// --- fused tanh/logCosh (pure Go only; no asm kernel yet) -----------------
+// --- fused tanh/logCosh ---------------------------------------------------
 
 func BenchmarkTanhLogCosh_ScalarAPI(b *testing.B) {
 	benchEachSize(b, func(b *testing.B, n int) {
@@ -130,6 +130,8 @@ func BenchmarkTanhLogCosh_ScalarAPI(b *testing.B) {
 	})
 }
 
+// BenchmarkTanhLogCosh_BatchGo is the gate baseline: float32-native,
+// branchless, unrolled, both branches evaluated and blended.
 func BenchmarkTanhLogCosh_BatchGo(b *testing.B) {
 	benchEachSize(b, func(b *testing.B, n int) {
 		b.Helper()
@@ -138,7 +140,67 @@ func BenchmarkTanhLogCosh_BatchGo(b *testing.B) {
 		dstTanh, dstLogCosh := touch(make([]float32, n)), touch(make([]float32, n))
 
 		for b.Loop() {
+			tanhLogCoshBatch32Go(dstTanh, dstLogCosh, src)
+		}
+	})
+}
+
+// BenchmarkTanhLogCosh_BatchDispatch goes through the public entry point, i.e.
+// AVX2 where available. Compare against BenchmarkTanhLogCosh_BatchGo for the
+// gate.
+func BenchmarkTanhLogCosh_BatchDispatch(b *testing.B) {
+	benchEachSize(b, func(b *testing.B, n int) {
+		b.Helper()
+
+		src := benchInput(n)
+		dstTanh, dstLogCosh := touch(make([]float32, n)), touch(make([]float32, n))
+
+		for b.Loop() {
 			TanhLogCoshFloat32(dstTanh, dstLogCosh, src)
+		}
+	})
+}
+
+// benchInputAllExp is the adversarial distribution for this kernel: every
+// element is past the branch point, so a hypothetical branchy scalar version
+// would take the expensive exponential path for all of them.
+//
+// The vector kernel's cost does not depend on the distribution at all, since
+// it evaluates both branches regardless. Comparing this against the ramp is
+// how that claim gets checked rather than asserted: the two should differ only
+// by whatever the denormal and saturation behaviour of the data costs, not by
+// the branch mix.
+func benchInputAllExp(n int) []float32 {
+	src := make([]float32, n)
+	for i := range src {
+		src[i] = 0.7 + float32(i)*(19.3/float32(n))
+	}
+
+	return src
+}
+
+func BenchmarkTanhLogCosh_BatchDispatch_AllExpBranch(b *testing.B) {
+	benchEachSize(b, func(b *testing.B, n int) {
+		b.Helper()
+
+		src := benchInputAllExp(n)
+		dstTanh, dstLogCosh := touch(make([]float32, n)), touch(make([]float32, n))
+
+		for b.Loop() {
+			TanhLogCoshFloat32(dstTanh, dstLogCosh, src)
+		}
+	})
+}
+
+func BenchmarkTanhLogCosh_BatchGo_AllExpBranch(b *testing.B) {
+	benchEachSize(b, func(b *testing.B, n int) {
+		b.Helper()
+
+		src := benchInputAllExp(n)
+		dstTanh, dstLogCosh := touch(make([]float32, n)), touch(make([]float32, n))
+
+		for b.Loop() {
+			tanhLogCoshBatch32Go(dstTanh, dstLogCosh, src)
 		}
 	})
 }
