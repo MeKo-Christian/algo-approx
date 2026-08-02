@@ -120,11 +120,11 @@ The batch kernels are float32-native minimax polynomials with FMA-contracted
 evaluation. Those are different trade-offs, and they do not all fall the same
 way:
 
-| Function          | scalar `*32`, Balanced | batch |            better |
-| ----------------- | ---------------------: | ----: | ----------------: |
-| `exp`             |                 38 ulp | 1 ulp | **batch**, by ~28x |
-| `tanh`            |                  1 ulp | 1 ulp |            neither |
-| `log(cosh)`       |                  0 ulp | 2 ulp (4 at the seam) | **scalar** |
+| Function    | scalar `*32`, Balanced |                 batch |             better |
+| ----------- | ---------------------: | --------------------: | -----------------: |
+| `exp`       |                 38 ulp |                 1 ulp | **batch**, by ~28x |
+| `tanh`      |                  1 ulp |                 1 ulp |            neither |
+| `log(cosh)` |                  0 ulp | 2 ulp (4 at the seam) |         **scalar** |
 
 So **do not reach for the batch path for accuracy alone.** For `exp` it is a
 large win, and the reason is the basis rather than the width: the balanced
@@ -173,11 +173,11 @@ All three figures below are full sweeps over every one of the 2³² float32 bit
 patterns, i.e. all 4 278 190 082 non-NaN inputs — the same method as the amd64
 table above, not a sample:
 
-| kernel      | max drift vs Go |                     inputs that differ at all |
-| ----------- | --------------: | --------------------------------------------: |
-| `exp`       |           1 ulp |                   22 out of 4 278 190 082     |
-| `tanh`      |           1 ulp |                    2 out of 4 278 190 082     |
-| `log(cosh)` |           0 ulp |                **none — bit-identical**       |
+| kernel      | max drift vs Go | inputs that differ at all |
+| ----------- | --------------: | ------------------------: |
+| `exp`       |           1 ulp |   22 out of 4 278 190 082 |
+| `tanh`      |           1 ulp |    2 out of 4 278 190 082 |
+| `log(cosh)` |           0 ulp |  **none — bit-identical** |
 
 Compare the amd64 row for the same kernels: 1 / 2 / 4 ulp and 99.95 / 99.98 /
 99.99 % bit-identical. `log(cosh)` in particular goes from the _worst_ of the

@@ -210,12 +210,12 @@ separate runs with the first discarded, CV ≤ 1 % on the vector arms. The machi
 is a laptop and idle-sleeps; the run was held awake with `caffeinate -dimsu`,
 without which the figures drift ~20 % slow.
 
-|    N | denominator      | pure-Go batch |          NEON | speedup |
-| ---: | ---------------- | ------------: | ------------: | ------: |
-| 1024 | `exp`            |         0.925 | **0.311** |   2.97× |
-| 4096 | `exp`            |         0.923 | **0.311** |   2.97× |
-| 1024 | fused `tanh`+`log(cosh)` | 3.722 | **1.062** |   3.51× |
-| 4096 | fused `tanh`+`log(cosh)` | 3.708 | **1.060** |   3.50× |
+|    N | denominator              | pure-Go batch |      NEON | speedup |
+| ---: | ------------------------ | ------------: | --------: | ------: |
+| 1024 | `exp`                    |         0.925 | **0.311** |   2.97× |
+| 4096 | `exp`                    |         0.923 | **0.311** |   2.97× |
+| 1024 | fused `tanh`+`log(cosh)` |         3.722 | **1.062** |   3.51× |
+| 4096 | fused `tanh`+`log(cosh)` |         3.708 | **1.060** |   3.50× |
 
 Against the non-batch baselines at N = 4096: `exp` is **7.6×** a `math.Exp`
 loop (2.359 ns/element), and the fused pair is **6.1×** the scalar API

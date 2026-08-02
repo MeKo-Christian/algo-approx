@@ -999,6 +999,7 @@ measured maximum is exactly 39, at x ≈ 8.665, identically with AVX2 on, AVX2 o
 `purego`. That confirms the derivation rather than threatening it, but it leaves no headroom, so
 the same care applies here as to `hypTolTanh`: if this bound ever needs raising, re-derive it
 from a float64 reference rather than nudging the constant.
+
 - [x] **Replace the three `VDIVPS` with `VRCPPS` + two Newton-Raphson steps — measured, and
       REJECTED.** See §6.2.2. The ceiling is 6%, and the replacement costs more instructions
       than that is worth.
@@ -1036,11 +1037,11 @@ per `VDIVPS ymm`** — the instruction-table figure.
 
 **A2 — ablation ceiling, Xeon Gold 5218, idle.** All three `VDIVPS` replaced by `VMULPS` with
 identical operands and register allocation: numerically wrong, but the same instruction count
-and dependency structure *minus the divider*. This bounds what any reciprocal scheme could ever
+and dependency structure _minus the divider_. This bounds what any reciprocal scheme could ever
 recover. Same protocol as §6.0.1 (`GOMAXPROCS=1 taskset -c 0`, warm-up discarded, ten
 interleaved `-count=1` runs, benchstat), AVX2 dispatch re-checked before every round:
 
-|    N | base     | divider ablated |  delta |
+|    N |     base | divider ablated |  delta |
 | ---: | -------: | --------------: | -----: |
 |   64 | 198.4 ns |        185.6 ns | −6.48% |
 |  256 | 745.5 ns |        696.6 ns | −6.57% |
@@ -1057,7 +1058,7 @@ critical path.** This is precisely the error the ablation was designed to catch,
 the earlier estimate (~29% if the divider serialised perfectly) was ~5x too optimistic.
 
 **Why this closes the item rather than merely deferring it.** 6% is the ceiling for a
-replacement that costs *nothing*. `VRCPPS` + two Newton steps adds ~5–6 instructions per site,
+replacement that costs _nothing_. `VRCPPS` + two Newton steps adds ~5–6 instructions per site,
 ~18 per eight-element block against a current ~69, into a kernel already issuing at 2.10 IPC —
 so the realistic outcome is a **regression**. On top of that, two of the three divides feed
 `tanh`, whose measured full-domain drift is 2 ulp against a `hypTolTanh` of 2: zero headroom,
@@ -1164,10 +1165,10 @@ measurement on this class of machine must be too.
 
 ns per element, N = 4096:
 
-| kernel                   | pure-Go batch |      NEON | speedup | non-batch baseline |
-| ------------------------ | ------------: | --------: | ------: | -----------------: |
+| kernel                   | pure-Go batch |      NEON | speedup |     non-batch baseline |
+| ------------------------ | ------------: | --------: | ------: | ---------------------: |
 | `exp`                    |         0.923 | **0.311** |   2.97× | 7.6× a `math.Exp` loop |
-| fused `tanh`+`log(cosh)` |         3.708 | **1.060** |   3.50× | 6.1× the scalar API |
+| fused `tanh`+`log(cosh)` |         3.708 | **1.060** |   3.50× |    6.1× the scalar API |
 
 Three things worth reading off this:
 

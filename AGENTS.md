@@ -157,8 +157,8 @@ So the kernels reach the hardware through `WORD`, behind named macros in
   reasoning from the ARM ARM. `go tool objdump` decodes via
   `golang.org/x/arch/arm64`, an implementation independent of the one that
   produced the bytes, so agreement is evidence rather than a tautology. The
-  probe loop is: put the candidate in a throwaway `TEXT`, `go build`, `go tool
-  objdump -s`, read the mnemonic back.
+  probe loop is: put the candidate in a throwaway `TEXT`, then `go build`,
+  `go tool objdump -s`, and read the mnemonic back.
 - **`TestNEONWordEncodings` is the standing version of that check.** It builds a
   binary, disassembles the kernel and asserts the expected mnemonics appear. It
   is the only test that can tell "the encoding is right" from "the encoding is
@@ -177,13 +177,13 @@ So the kernels reach the hardware through `WORD`, behind named macros in
 
 arm64 Plan 9 semantics pinned by the same probe method:
 
-| written                        | means                                            |
-| ------------------------------ | ------------------------------------------------ |
-| `VFMLA Vm.S4, Vn.S4, Vd.S4`    | `dst = dst + n*m` (accumulates into the dest)     |
-| `VFMLS Vm.S4, Vn.S4, Vd.S4`    | `dst = dst - n*m`                                 |
-| `VSUB Vm.S4, Vn.S4, Vd.S4`     | `dst = n - m`, **integer**                        |
-| `VBIT Vm.B16, Vn.B16, Vd.B16`  | takes `n` where `m`'s bits are set, keeps `dst` elsewhere |
-| `FMOVQ off(Rn), Fd`            | 128-bit load; the destination is spelled `F`, not `V` |
+| written                       | means                                                     |
+| ----------------------------- | --------------------------------------------------------- |
+| `VFMLA Vm.S4, Vn.S4, Vd.S4`   | `dst = dst + n*m` (accumulates into the dest)             |
+| `VFMLS Vm.S4, Vn.S4, Vd.S4`   | `dst = dst - n*m`                                         |
+| `VSUB Vm.S4, Vn.S4, Vd.S4`    | `dst = n - m`, **integer**                                |
+| `VBIT Vm.B16, Vn.B16, Vd.B16` | takes `n` where `m`'s bits are set, keeps `dst` elsewhere |
+| `FMOVQ off(Rn), Fd`           | 128-bit load; the destination is spelled `F`, not `V`     |
 
 Unlike x86 there is no `VMINPS`/`VMAXPS` NaN-asymmetry trap: AArch64's `FMIN`
 and `FMAX` are symmetric, so a swapped operand pair is merely wrong about which
@@ -212,11 +212,11 @@ ulp on one branch, suspect this before suspecting the encoding.
 The payoff is that on arm64 the two kernels agree far more closely than on
 amd64. Swept over all 2³² bit patterns on both architectures:
 
-| kernel      | amd64 drift | amd64 identical | arm64 drift |     arm64 identical |
-| ----------- | ----------: | --------------: | ----------: | ------------------: |
-| `exp`       |       1 ulp |          99.95% |       1 ulp |  all but 22 inputs  |
-| `tanh`      |       2 ulp |          99.98% |       1 ulp |   all but 2 inputs  |
-| `log(cosh)` |       4 ulp |          99.99% |       0 ulp |     **all of them** |
+| kernel      | amd64 drift | amd64 identical | arm64 drift |   arm64 identical |
+| ----------- | ----------: | --------------: | ----------: | ----------------: |
+| `exp`       |       1 ulp |          99.95% |       1 ulp | all but 22 inputs |
+| `tanh`      |       2 ulp |          99.98% |       1 ulp |  all but 2 inputs |
+| `log(cosh)` |       4 ulp |          99.99% |       0 ulp |   **all of them** |
 
 Both full sweeps are opt-in (`ALGO_APPROX_EXHAUSTIVE=1`). On a laptop, run them
 under `caffeinate -dimsu`: the fused sweep takes 10 minutes of solid CPU, and on
