@@ -49,8 +49,14 @@ func goHyp(inputs []float32) ([]float32, []float32) {
 // disagree because the assembly contracts its multiply-adds and the compiler
 // refuses to; measured over the full domain they reach 2 ulp on tanh and 4 on
 // log(cosh). On arm64 the compiler contracts too, so both sides evaluate the
-// same fused expressions and the drift is far smaller — see the full-domain
-// test at the bottom of this file for the measured figures.
+// same fused expressions. Measured over all 2^32 bit patterns (4278190082
+// non-NaN inputs) by the test at the bottom of this file:
+//
+//	tanh     max 1 ulp, all but 2 inputs bit-identical
+//	logCosh  max 0 ulp, bit-identical everywhere
+//
+// So both sit far inside their bounds here, and log(cosh) — the worst of the
+// three on amd64 — does not differ at all.
 //
 // The bounds are kept at the derived values rather than tightened to what this
 // host happens to reach. FMA scheduling differs between microarchitectures, and

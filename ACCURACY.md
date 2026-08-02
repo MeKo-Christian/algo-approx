@@ -169,25 +169,28 @@ once.
 
 Measured on an Apple M5:
 
-| kernel                    |                 max drift vs Go |             bit-identical |
-| ------------------------- | ------------------------------: | ------------------------: |
-| `exp`, all 2³² patterns   |                           1 ulp |     all but 22 of 4.28e9  |
-| `tanh`, 3.4M-point sweep  |                           0 ulp |                     100 % |
-| `log(cosh)`, same sweep   |                           0 ulp |                     100 % |
+All three figures below are full sweeps over every one of the 2³² float32 bit
+patterns, i.e. all 4 278 190 082 non-NaN inputs — the same method as the amd64
+table above, not a sample:
 
-The `exp` figure is a genuine full-domain sweep. The 22 disagreements are ties
-in the range reduction: the Go kernel rounds `x*log2e` with the
-add-a-magic-constant trick, which on arm64 becomes a fused
-`fma(x, log2e, magic)` and so rounds the product exactly once, while the kernel
-uses `FRINTN` on the already-rounded product. At a tie the two land on opposite
-sides and the reduced argument differs by one, which costs the last bit.
+| kernel      | max drift vs Go |                     inputs that differ at all |
+| ----------- | --------------: | --------------------------------------------: |
+| `exp`       |           1 ulp |                   22 out of 4 278 190 082     |
+| `tanh`      |           1 ulp |                    2 out of 4 278 190 082     |
+| `log(cosh)` |           0 ulp |                **none — bit-identical**       |
 
-The `tanh` / `log(cosh)` figures come from a 3.4M-point sweep that walks the
-branch seam at |x| = 0.625 one float32 at a time — the region where every worst
-case on amd64 lives — not from the full 2³² domain. The exhaustive test exists
-(`TestHypNEONFullDomainDifferential`, opt-in via `ALGO_APPROX_EXHAUSTIVE=1`) but
-has not been run to completion on arm64 hardware, so treat the 100 % as "nothing
-found where the errors are" rather than as a proof over the whole domain.
+Compare the amd64 row for the same kernels: 1 / 2 / 4 ulp and 99.95 / 99.98 /
+99.99 % bit-identical. `log(cosh)` in particular goes from the _worst_ of the
+three on amd64 to exactly equal on arm64.
+
+The handful of disagreements that remain are all the same thing: ties in the
+range reduction. The Go kernel rounds `x*log2e` with the add-a-magic-constant
+trick, which on arm64 becomes a fused `fma(x, log2e, magic)` and so rounds the
+product exactly once, while the assembly uses `FRINTN` on the already-rounded
+product. At a tie the two land on opposite sides, the reduced argument differs
+by one, and that costs the last bit. `tanh` inherits only two such inputs
+because its large branch is a division that mostly absorbs them; `log(cosh)`
+inherits none.
 
 Getting that agreement required one deliberate departure from the AVX2 kernel
 rather than a faithful transliteration of it; see the note in

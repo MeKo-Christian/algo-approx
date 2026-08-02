@@ -210,16 +210,18 @@ point where contraction differs.** When a differential test fails by exactly one
 ulp on one branch, suspect this before suspecting the encoding.
 
 The payoff is that on arm64 the two kernels agree far more closely than on
-amd64: `exp` is bit-identical on all but **22** of the 2³² inputs (against
-99.95% on amd64), and the fused kernel is bit-identical on every one of the
-3.4M inputs swept by `TestHypNEONMatchesGo`, including the branch seam one
-float32 at a time, where amd64 reaches 2 ulp on `tanh` and 4 on `log(cosh)`.
+amd64. Swept over all 2³² bit patterns on both architectures:
 
-The fused kernel's full 2³² sweep has **not** been run to completion on arm64
-hardware — the only machine available idle-sleeps and the run needs the better
-part of an hour of uninterrupted CPU. `TestHypNEONFullDomainDifferential` exists
-and is the same shape as the amd64 one; run it under `caffeinate -dimsu` on a
-machine that will stay awake before quoting a full-domain figure for it.
+| kernel      | amd64 drift | amd64 identical | arm64 drift |     arm64 identical |
+| ----------- | ----------: | --------------: | ----------: | ------------------: |
+| `exp`       |       1 ulp |          99.95% |       1 ulp |  all but 22 inputs  |
+| `tanh`      |       2 ulp |          99.98% |       1 ulp |   all but 2 inputs  |
+| `log(cosh)` |       4 ulp |          99.99% |       0 ulp |     **all of them** |
+
+Both full sweeps are opt-in (`ALGO_APPROX_EXHAUSTIVE=1`). On a laptop, run them
+under `caffeinate -dimsu`: the fused sweep takes 10 minutes of solid CPU, and on
+a machine that idle-sleeps it will otherwise take hours of wall time and look
+hung.
 If a new kernel disagrees with its Go twin by a wild margin, re-run these before
 suspecting the maths.
 

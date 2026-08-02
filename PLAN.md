@@ -1180,18 +1180,20 @@ Three things worth reading off this:
   architectures agreeing to four significant figures on a property that is about
   the algorithm rather than the hardware is a good sign the blend behaves as
   designed.
-- **Accuracy came out better than on amd64**, for the contraction reason above:
-  `exp` is bit-identical to the Go kernel on all but 22 of the 2³² inputs, and
-  the fused kernel on every one of 3.4M inputs swept across the branch seam.
-  See ACCURACY.md.
+- **Accuracy came out better than on amd64**, for the contraction reason above.
+  Swept over all 2³² bit patterns, the assembly is bit-identical to the pure-Go
+  kernel on all but 22 inputs for `exp`, all but 2 for `tanh`, and on **every**
+  input for `log(cosh)` — which on amd64 is the worst of the three at 4 ulp. The
+  survivors are ties in the range reduction, where the Go kernel's
+  add-a-magic-constant rounding fuses on arm64 and the assembly's `FRINTN` does
+  not. See ACCURACY.md.
+
+The two full sweeps take 11 s (`exp`) and 605 s (fused) of solid CPU. Run them
+under `caffeinate -dimsu`; the first attempt without it accumulated under 8
+minutes of CPU in 50 minutes of wall time and had to be abandoned.
 
 ## 7.2 Remaining
 
-- [ ] Run `TestHypNEONFullDomainDifferential` to completion on arm64 hardware.
-      The `exp` sweep completed (11 s); the fused one needs the better part of an
-      hour of uninterrupted CPU and the only available machine sleeps. The
-      3.4M-point seam sweep is what currently backs the accuracy claim, and the
-      documentation says so rather than implying a full-domain proof.
 - [ ] Consider `FRECPE` + Newton for the three `FDIV`s — but per §6.2.2, measure
       first. On Cascade Lake the divider was busy 42 % of cycles and removing it
       entirely recovered only 6 %, because the out-of-order engine already hid
