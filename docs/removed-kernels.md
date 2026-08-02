@@ -41,4 +41,3 @@ needed a cubic polish, and it is worth keeping even though the code is gone.
 > Edge cases match 1/x exactly: NaN -> NaN, +/-0 -> +/-Inf, +/-Inf -> +/-0,
 > and subnormal inputs are normalized before the seed so they do not fall off
 > the bottom of the exponent field.
-</content>
