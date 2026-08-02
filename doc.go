@@ -20,8 +20,8 @@
 // Aliasing: each destination must be either identical to src (in-place,
 // dst == src, which is supported and tested) or non-overlapping with it.
 // Partial overlap is undefined. This is not a hedge — the SIMD kernels read a
-// whole eight-element vector before writing any of it, so a shifted alias
-// observes a mixture of old and new values. Passing a partially overlapping
+// whole vector before writing any of it (eight elements under AVX2, four under
+// NEON), so a shifted alias observes a mixture of old and new values. Passing a partially overlapping
 // pair is a programming error, not a supported mode, and a test using two
 // distinct slices will never catch it.
 //
