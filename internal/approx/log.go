@@ -4,30 +4,51 @@ import "math"
 
 // Log returns an approximate natural logarithm ln(x).
 //
-//nolint:funlen,varnamelen
+// This is a thin generic shim over the concrete float64 kernel, and
+// deliberately so: a generic body is compiled once per gcshape and called
+// through a dictionary from other packages, which costs a real call frame that
+// no caller can inline away. Keeping the arithmetic in a non-generic function
+// means a cross-package caller inlines this wrapper and lands on a direct call.
+// See the cross-module benchmarks in consumerbench/.
 func Log[T Float](x T, prec Precision) T {
+	return T(log64(float64(x), prec))
+}
+
+//nolint:funlen,varnamelen
+func log64(x float64, prec Precision) float64 {
 	// Edge cases.
-	if x != x { //nolint:gocritic
+	if math.IsNaN(x) {
 		return x
 	}
 
 	if x == 0 {
-		return T(math.Inf(-1))
+		return math.Inf(-1)
 	}
 
 	if x < 0 {
-		return T(math.NaN())
+		return math.NaN()
 	}
 
-	if math.IsInf(float64(x), 1) {
-		return T(math.Inf(1))
+	if math.IsInf(x, 1) {
+		return math.Inf(1)
 	}
 
 	// Fast range reduction without calling math.Frexp:
 	// x = m * 2^e, with m in [0.5, 1).
-	xf := float64(x)
+	xf := x
+
+	// Subnormals (biased exponent 0) carry no implicit leading 1, so the
+	// mantissa reconstruction below would be wrong by up to ~36 nats.
+	// Scale into the normal range first and pay it back in the exponent.
+	subnormalShift := 0
+
+	if xf < smallestNormalFloat64 {
+		xf *= subnormalScale
+		subnormalShift = subnormalScaleExp
+	}
+
 	bits := math.Float64bits(xf)
-	expBits := int((bits>>52)&0x7ff) - 1023 //nolint:gosec
+	expBits := int((bits>>52)&0x7ff) - 1023 - subnormalShift //nolint:gosec
 	mant := bits & ((uint64(1) << 52) - 1)
 
 	// m in [1,2) initially.
@@ -79,7 +100,18 @@ func Log[T Float](x T, prec Precision) T {
 
 	lnm := 2 * sum
 
-	return T(lnm + float64(e)*ln2)
+	return lnm + float64(e)*ln2
 }
 
-const ln2 = 0.693147180559945309417232121458176568
+const (
+	ln2 = 0.693147180559945309417232121458176568
+
+	// smallestNormalFloat64 is 2^-1022, the smallest positive normal float64.
+	// Anything strictly below it is subnormal.
+	smallestNormalFloat64 = 2.2250738585072014e-308
+
+	// subnormalScale (2^54) lifts any positive subnormal into the normal range
+	// without losing a bit; subnormalScaleExp is the exponent it adds.
+	subnormalScale    = 1 << 54
+	subnormalScaleExp = 54
+)

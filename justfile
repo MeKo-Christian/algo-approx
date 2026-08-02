@@ -10,6 +10,18 @@ test:
 bench:
     go test -bench=. -benchmem -run=^$ ./...
 
+# Run the in-package benchmarks the way the published table was measured.
+# GOMAXPROCS=1 and -count>=4 are part of the method, not decoration.
+bench-published:
+    GOMAXPROCS=1 go test -run=^$ -bench=. -benchtime=400ms -count=4 .
+
+# Run the cross-module consumer benchmarks. These are the numbers a real
+# caller sees: consumerbench/ is its own module and imports algo-approx by
+# module path, so nothing gets the same-package inlining that flatters the
+# in-package benchmarks.
+bench-consumer:
+    cd consumerbench && GOMAXPROCS=1 go test -run=^$ -bench=. -benchtime=400ms -count=6 .
+
 # Run linters
 lint:
     golangci-lint run

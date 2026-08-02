@@ -11,7 +11,8 @@ func TestMeasureAccuracyBasic(t *testing.T) {
 
 	samples := []float64{1, 2, 3, 4}
 
-	m := MeasureAccuracy[float64](samples,
+	m := MeasureAccuracy[float64](
+		samples,
 		func(x float64) float64 { return x },
 		func(x float64) float64 { return x },
 	)

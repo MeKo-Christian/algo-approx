@@ -46,6 +46,69 @@ func FastExpPrec[T Float](x T, prec Precision) T {
 func FastExp32(x float32) float32 { return FastExp[float32](x) }
 func FastExp64(x float64) float64 { return FastExp[float64](x) }
 
+// FastTanh returns an approximate hyperbolic tangent using the default precision.
+func FastTanh[T Float](x T) T { return FastTanhPrec(x, PrecisionAuto) }
+
+// FastTanhPrec returns an approximate hyperbolic tangent using the requested precision.
+//
+// Odd symmetry is exact (FastTanh(-x) is the bit-for-bit negation of
+// FastTanh(x)), saturation to +/-1 is exact for |x| >= 19.0625, and NaN,
+// +/-Inf and +/-0 behave as in math.Tanh. At PrecisionBalanced the maximum
+// absolute error over [-20, 20] is below 1e-7.
+//
+// FastTanh and FastLogCosh are a consistent pair: see FastLogCoshPrec.
+func FastTanhPrec[T Float](x T, prec Precision) T {
+	return iapprox.Tanh(x, iapprox.Precision(normalizePrecision(prec)))
+}
+
+func FastTanh32(x float32) float32 { return FastTanh[float32](x) }
+func FastTanh64(x float64) float64 { return FastTanh[float64](x) }
+
+// FastLogCosh returns an approximate log(cosh(x)) using the default precision.
+func FastLogCosh[T Float](x T) T { return FastLogCoshPrec(x, PrecisionAuto) }
+
+// FastLogCoshPrec returns an approximate log(cosh(x)) using the requested precision.
+//
+// FastLogCosh is designed as a consistent pair with FastTanh rather than fitted
+// independently: tanh is exactly d/dx log(cosh(x)), and the two share one
+// branch point and one exp(-2|x|) evaluation so that the derivative
+// relationship holds to the approximation's own accuracy. Consumers that rely
+// on the identity - a discrete-gradient energy scheme, for instance, where it
+// is what makes the scheme passive - can use the pair directly.
+//
+// Unlike math.Log(math.Cosh(x)), which overflows for |x| above ~710, this
+// never forms cosh: it evaluates the asymptote |x| - ln2 + log1p(exp(-2|x|)).
+//
+// At PrecisionBalanced the maximum absolute error over |x| < 12 is below 1e-7,
+// degrading gracefully outside that range.
+func FastLogCoshPrec[T Float](x T, prec Precision) T {
+	return iapprox.LogCosh(x, iapprox.Precision(normalizePrecision(prec)))
+}
+
+func FastLogCosh32(x float32) float32 { return FastLogCosh[float32](x) }
+func FastLogCosh64(x float64) float64 { return FastLogCosh[float64](x) }
+
+// FastRecip returns an approximate 1/x using the default precision.
+func FastRecip[T Float](x T) T { return FastRecipPrec(x, PrecisionAuto) }
+
+// FastRecipPrec returns an approximate 1/x using the requested precision.
+//
+// Precision selects the Newton-Raphson step count on top of a bit-trick seed:
+// PrecisionFast is one step (~1.7e-8 relative), PrecisionBalanced two
+// (~3e-16, full float64 in practice) and PrecisionHigh three (<=1 ulp).
+//
+// Whether this beats writing 1/x depends entirely on the caller. A plain
+// divide is a single DIVSD on amd64 with ~13 cycle latency but good
+// throughput, so FastRecip loses in a latency-bound scalar chain and can win
+// only when several independent reciprocals are in flight. See README.md for
+// both measurements.
+func FastRecipPrec[T Float](x T, prec Precision) T {
+	return iapprox.Recip(x, iapprox.Precision(normalizePrecision(prec)))
+}
+
+func FastRecip32(x float32) float32 { return FastRecip[float32](x) }
+func FastRecip64(x float64) float64 { return FastRecip[float64](x) }
+
 // FastSin returns an approximate sine using the default precision.
 func FastSin[T Float](x T) T { return FastSinPrec(x, PrecisionAuto) }
 

@@ -3,15 +3,20 @@ package approx
 import "math"
 
 // Exp returns an approximate exponential e^x.
+//
+// A thin generic shim over the concrete float64 kernel; see Log for why.
 func Exp[T Float](x T, prec Precision) T {
+	return T(exp64(float64(x), prec))
+}
+
+func exp64(xflt float64, prec Precision) float64 {
 	// Edge cases.
-	if x != x { //nolint:gocritic
-		return x
+	if math.IsNaN(xflt) {
+		return xflt
 	}
 
-	xflt := float64(x)
 	if math.IsInf(xflt, 1) {
-		return T(math.Inf(1))
+		return math.Inf(1)
 	}
 
 	if math.IsInf(xflt, -1) {
@@ -20,7 +25,7 @@ func Exp[T Float](x T, prec Precision) T {
 
 	// Clamp to float64 overflow bounds.
 	if xflt > maxLogFloat64 {
-		return T(math.Inf(1))
+		return math.Inf(1)
 	}
 
 	if xflt < minLogFloat64 {
@@ -44,7 +49,7 @@ func Exp[T Float](x T, prec Precision) T {
 		res = math.Ldexp(expr, k)
 	}
 
-	return T(res)
+	return res
 }
 
 //nolint:varnamelen

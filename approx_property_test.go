@@ -434,3 +434,104 @@ func TestIntPowerNegativeExponent(t *testing.T) {
 		}
 	}
 }
+
+// TestProperty_Tanh_MonotoneAndBounded_Float64 covers the two structural
+// properties a saturating nonlinearity is used for.
+func TestProperty_Tanh_MonotoneAndBounded_Float64(t *testing.T) {
+	t.Parallel()
+
+	prev := FastTanh(-25.0)
+
+	for i := range 100001 {
+		x := -25 + 50*float64(i)/100000.0
+
+		cur := FastTanh(x)
+		if cur < prev {
+			t.Fatalf("tanh not monotone at x=%g: %g < %g", x, cur, prev)
+		}
+
+		if cur < -1 || cur > 1 {
+			t.Fatalf("tanh(%g) = %g outside [-1,1]", x, cur)
+		}
+
+		prev = cur
+	}
+}
+
+// TestProperty_LogCosh_EvenNonNegativeMonotone_Float64 pins the shape of
+// log(cosh(x)): even, non-negative, zero only at zero, and increasing in |x|.
+func TestProperty_LogCosh_EvenNonNegativeMonotone_Float64(t *testing.T) {
+	t.Parallel()
+
+	prev := FastLogCosh(0.0)
+	if prev != 0 {
+		t.Fatalf("logCosh(0) = %g, want 0", prev)
+	}
+
+	for i := 1; i <= 100000; i++ {
+		x := 30 * float64(i) / 100000.0
+
+		cur := FastLogCosh(x)
+		if cur < prev {
+			t.Fatalf("logCosh not monotone in |x| at x=%g: %g < %g", x, cur, prev)
+		}
+
+		if cur < 0 {
+			t.Fatalf("logCosh(%g) = %g, want >= 0", x, cur)
+		}
+
+		if FastLogCosh(-x) != cur {
+			t.Fatalf("logCosh not even at x=%g", x)
+		}
+
+		prev = cur
+	}
+}
+
+// TestProperty_LogCosh_Asymptote_Float64 checks the large-|x| behaviour the
+// implementation is built on: log(cosh(x)) -> |x| - ln2.
+func TestProperty_LogCosh_Asymptote_Float64(t *testing.T) {
+	t.Parallel()
+
+	for _, x := range []float64{20, 50, 100, 400, 1000, 1e10} {
+		got := FastLogCosh(x)
+
+		want := x - math.Ln2
+		if math.Abs(got-want) > 1e-12*math.Max(1, x) {
+			t.Fatalf("logCosh(%g) = %g, want ~%g", x, got, want)
+		}
+	}
+}
+
+// TestProperty_Recip_RoundTrip_Float64 checks x * (1/x) ~ 1 across the whole
+// normal exponent range, including the ends where a naive exponent negation
+// would fall off.
+func TestProperty_Recip_RoundTrip_Float64(t *testing.T) {
+	t.Parallel()
+
+	for i := range 20001 {
+		x := math.Pow(10, -300+600*float64(i)/20000.0)
+		if i%2 == 1 {
+			x = -x
+		}
+
+		product := x * FastRecipPrec(x, PrecisionHigh)
+		if math.Abs(product-1) > 4e-16 {
+			t.Fatalf("x*(1/x) for x=%g got %g", x, product)
+		}
+	}
+}
+
+// TestProperty_Recip_ExactlyOdd_Float64 mirrors the tanh symmetry guarantee.
+func TestProperty_Recip_ExactlyOdd_Float64(t *testing.T) {
+	t.Parallel()
+
+	for _, prec := range []Precision{PrecisionFast, PrecisionBalanced, PrecisionHigh} {
+		for i := range 5001 {
+			x := math.Pow(10, -300+600*float64(i)/5000.0)
+			if FastRecipPrec(-x, prec) != -FastRecipPrec(x, prec) {
+				t.Fatalf("recip not exactly odd at x=%g prec=%v", x, prec)
+			}
+		}
+	}
+}
