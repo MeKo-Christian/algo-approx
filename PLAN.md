@@ -906,6 +906,12 @@ code. The likely reason is the three `VDIVPS` per block (the rational core's `nu
 and on Cascade Lake three 256-bit divides per eight elements plausibly accounts for a large
 share of those cycles. This is an inference from instruction tables, **not measured** — see 6.2.
 
+> **Superseded — this paragraph has since been measured and is wrong on both counts (§6.2.2).**
+> The "~1.3 IPC" figure is arithmetic on wall-clock divided by an instruction estimate, not a
+> counter reading; measured directly the kernel runs at **2.10 IPC**. And while the divider is
+> genuinely busy 42% of cycles, removing it entirely recovers only 6%, so it is not where the
+> remaining time goes. The paragraph is left in place because §6.2.2 is a correction of it.
+
 ## 6.1 Delivered
 
 - [x] `internal/simd/` package with float32-**native** batch kernels (the scalar API widens
@@ -961,9 +967,9 @@ precision.
       destination is shorter than `src`, `len(src)` elements processed, destinations must be
       identical to `src` or non-overlapping. No `...BatchPrec` variants — the tier is a compile-
       time constant, per §"Precision must not be a runtime argument in a loop" in `AGENTS.md`.
-      See §6.2.2 for two design notes that came out of building it.
+      See §6.2.1 for two design notes that came out of building it.
 
-### 6.2.2 Batch API design notes
+### 6.2.1 Batch API design notes
 
 **There is no generic `FastExpBatch[T Float]`, and the reason is not the one first assumed.**
 The design was written up on the theory that reaching the float32 kernel from a generic body
@@ -993,17 +999,75 @@ measured maximum is exactly 39, at x ≈ 8.665, identically with AVX2 on, AVX2 o
 `purego`. That confirms the derivation rather than threatening it, but it leaves no headroom, so
 the same care applies here as to `hypTolTanh`: if this bound ever needs raising, re-derive it
 from a float64 reference rather than nudging the constant.
-- [ ] **Replace the three `VDIVPS` with `VRCPPS` + two Newton-Raphson steps.** This is the
-      single largest remaining win and the one concrete follow-up the measurements point at.
-      The reciprocal sequence was probed on this hardware and lands within **1 ulp**, so it is
-      numerically viable; it costs five pipelined instructions against one non-pipelined divide.
-      Before doing it, _measure_ rather than assume — profile the kernel to confirm the divider
-      really is the limiter (6.0.1 infers it from ~1.3 IPC and instruction tables, which is not
-      the same as having measured it). If it holds, expect a meaningful fraction of the current
-      2.82 ns/element back.
+- [x] **Replace the three `VDIVPS` with `VRCPPS` + two Newton-Raphson steps — measured, and
+      REJECTED.** See §6.2.2. The ceiling is 6%, and the replacement costs more instructions
+      than that is worth.
 - [ ] Consider the same treatment for `exp`'s sibling kernels on ARM64 (Phase 7); note the
-      Cascade Lake divider is slower than Alder Lake's, so the payoff above is
-      microarchitecture-dependent and should be re-measured per target.
+      Cascade Lake divider is slower than Alder Lake's, so any payoff is
+      microarchitecture-dependent and must be re-measured per target. Given §6.2.2, start by
+      measuring rather than by writing the reciprocal sequence.
+- [ ] Single-output batch `tanh` and `log(cosh)`. The public batch API ships only the fused
+      two-output form, so a caller who wants `tanh` alone must pass a reusable scratch buffer
+      for the `log(cosh)` destination. Fixing it properly needs either a second assembly kernel
+      or a nil-destination convention inside the existing one. Known wart, deliberately deferred.
+
+### 6.2.2 The divider hypothesis, measured (2026-08-02) — **REFUTED**
+
+Two independent measurements, because neither machine can do both: the quiet Xeon has no `perf`
+(`perf_event_paranoid = 3`, no binary), and the local laptop's wall-clock is unusable under
+other users' load. A decision rule was fixed **before** either was run — stop below 8%, divide
+#3 only at 8–15%, all three above 15%.
+
+**A1 — divider occupancy, i7-1255U (Alder Lake).** `perf stat -e cycles,instructions,`
+`arith.fpdiv_active`, `taskset -c 0,1`, prebuilt test binary, `BatchDispatch/n=4096`, AVX2 path
+confirmed live first. Four runs:
+
+| metric                          |             value |
+| ------------------------------- | ----------------: |
+| `arith.fpdiv_active` / `cycles` | **41.9% ± 0.4pp** |
+| IPC                             |              2.10 |
+| cycles/element                  |              4.48 |
+
+Wall-clock here is meaningless (the box was under other users' load), but the ratio is a
+per-task counter and was stable across runs. It cross-checks exactly: 41.9% of 4.48 cyc/element
+is 1.88 divider-cycles per element, which at three divides per eight elements is **5.0 cycles
+per `VDIVPS ymm`** — the instruction-table figure.
+
+**A2 — ablation ceiling, Xeon Gold 5218, idle.** All three `VDIVPS` replaced by `VMULPS` with
+identical operands and register allocation: numerically wrong, but the same instruction count
+and dependency structure *minus the divider*. This bounds what any reciprocal scheme could ever
+recover. Same protocol as §6.0.1 (`GOMAXPROCS=1 taskset -c 0`, warm-up discarded, ten
+interleaved `-count=1` runs, benchstat), AVX2 dispatch re-checked before every round:
+
+|    N | base     | divider ablated |  delta |
+| ---: | -------: | --------------: | -----: |
+|   64 | 198.4 ns |        185.6 ns | −6.48% |
+|  256 | 745.5 ns |        696.6 ns | −6.57% |
+| 1024 | 2.902 µs |        2.740 µs | −5.58% |
+| 4096 | 11.60 µs |        10.90 µs | −6.00% |
+
+All p = 0.000, n = 10, CV ≤ 2.2%. Base n=4096 reproduces §6.0.1's 11.58 µs, so the two tables
+are directly comparable.
+
+**The two results together are the interesting part.** The divider is busy 42% of all cycles,
+yet removing it entirely recovers only 6% — the out-of-order engine overlaps roughly
+six-sevenths of the divider's occupancy with the surrounding FMA work. **Occupancy is not the
+critical path.** This is precisely the error the ablation was designed to catch, and it is why
+the earlier estimate (~29% if the divider serialised perfectly) was ~5x too optimistic.
+
+**Why this closes the item rather than merely deferring it.** 6% is the ceiling for a
+replacement that costs *nothing*. `VRCPPS` + two Newton steps adds ~5–6 instructions per site,
+~18 per eight-element block against a current ~69, into a kernel already issuing at 2.10 IPC —
+so the realistic outcome is a **regression**. On top of that, two of the three divides feed
+`tanh`, whose measured full-domain drift is 2 ulp against a `hypTolTanh` of 2: zero headroom,
+and any accuracy loss there would have to be bought back with work that the timing does not
+justify. No branch of this looks good. The single-ablation attribution runs were built but not
+executed, because the decision rule gates them on the ceiling being promising.
+
+**Correction to §6.0.1.** That section attributed the kernel's cost to the divider on the
+strength of a "~1.3 IPC" figure. That figure was arithmetic on wall-clock divided by an
+instruction estimate, not a counter reading, and it does not survive measurement: the same
+kernel runs at **2.10 IPC**. The premise was wrong at its root, not only in its conclusion.
 
 ---
 
