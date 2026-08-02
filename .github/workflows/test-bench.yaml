@@ -16,13 +16,32 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version-file: go.mod
 
       - name: Run benchmarks
         run: go test -bench=. -benchmem -run=^$ ./... | tee bench-output.txt
+
+      # consumerbench/ is a nested module, so the `./...` above never reaches it.
+      # These are the numbers that actually matter -- a library that only wins
+      # when benchmarked from inside itself does not win -- which is exactly why
+      # they must not be *gated* on here. A shared GitHub runner is a noisy,
+      # oversubscribed VM with no frequency guarantees; the inlining delta this
+      # module exists to detect is about 1.3x, well inside run-to-run variance
+      # on such a host, so any timing threshold would flake far more often than
+      # it would catch a real regression. The artifact is for humans to read.
+      #
+      # The property itself is gated, just not through timings:
+      # TestCrossModuleInlining in consumerbench/inline_test.go asserts the
+      # compiler's inlining decisions statically and runs in the test-consumer
+      # job of test-unit.yaml.
+      - name: Run benchmarks (consumer module)
+        run: go test -bench=. -benchmem -run=^$ ./... | tee ../bench-output-consumer.txt
+        working-directory: consumerbench
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
         with:
           name: benchmarks
-          path: bench-output.txt
+          path: |
+            bench-output.txt
+            bench-output-consumer.txt

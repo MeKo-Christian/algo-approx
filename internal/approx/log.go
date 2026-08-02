@@ -48,7 +48,9 @@ func log64(x float64, prec Precision) float64 {
 	}
 
 	bits := math.Float64bits(xf)
-	expBits := int((bits>>52)&0x7ff) - 1023 - subnormalShift //nolint:gosec
+	// The 0x7ff mask bounds the value to 11 bits before the conversion, so it
+	// always fits an int.
+	expBits := int((bits>>52)&0x7ff) - 1023 - subnormalShift
 	mant := bits & ((uint64(1) << 52) - 1)
 
 	// m in [1,2) initially.

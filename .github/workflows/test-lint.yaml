@@ -16,10 +16,25 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version-file: go.mod
 
+      # v8, not v3: the v3 action runs on a Node release GitHub no longer
+      # provides, so it could not start at all. v8 requires
+      # golangci-lint >= v2.1.0, which is what .golangci.toml already asks for
+      # with `version = "2"`.
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v8
         with:
           version: latest
           args: --timeout=5m
+
+      # consumerbench/ is a nested module, so the run above does not reach it.
+      # No config is passed: golangci-lint walks up from the working directory
+      # and finds the repository's own .golangci.toml, so the nested module is
+      # held to exactly the same rules as the root one.
+      - name: golangci-lint (consumer module)
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+          args: --timeout=5m
+          working-directory: consumerbench

@@ -12,15 +12,21 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        go-version: ['1.21', '1.22', '1.23']
 
     steps:
       - uses: actions/checkout@v4
 
+      # The Go version comes from go.mod and nowhere else. This used to be a
+      # ['1.21', '1.22', '1.23'] matrix, which tested nothing: go.mod declares
+      # `go 1.25.0` with no `toolchain` line, so GOTOOLCHAIN=auto silently
+      # downloaded Go 1.25 in every cell. Nine jobs, one version, and a matrix
+      # that would not have caught a 1.21 incompatibility if there were one --
+      # the code does not even compile on 1.21 (`for i := range b.N` needs 1.22).
+      # go-version-file keeps the declared version and CI in step by construction.
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version-file: go.mod
 
       - name: Build
         run: go build -v ./...
@@ -29,8 +35,52 @@ jobs:
         run: go test -v -race -count=1 -coverprofile=coverage.txt -covermode=atomic ./...
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.23'
+        uses: codecov/codecov-action@v5
+        if: matrix.os == 'ubuntu-latest'
         with:
           files: ./coverage.txt
           flags: unittests
+
+  # consumerbench/ is a nested Go module. `go test ./...` in the job above does
+  # not descend into nested modules, so without this job consumerbench/ is never
+  # built, never vetted and never tested -- and the cross-module inlining
+  # regression it exists to catch would pass CI silently.
+  #
+  # Deliberately single-platform. TestCrossModuleInlining reads the compiler's
+  # inlining budget, which is a property of a specific compiler version rather
+  # than of the library; fanning it out over several Go versions would turn a
+  # compiler tuning change into a red build here. One version, taken from the
+  # nested module's own go.mod.
+  test-consumer:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: consumerbench/go.mod
+
+      - name: Build
+        run: go build -v ./...
+        working-directory: consumerbench
+
+      - name: Vet
+        run: go vet ./...
+        working-directory: consumerbench
+
+      # Includes TestCrossModuleInlining, which asserts statically -- through
+      # `go build -gcflags=-m` -- that the generic shims still inline into a
+      # consumer. That assertion is deterministic; the timings are not, see the
+      # note in test-bench.yaml.
+      - name: Run tests
+        run: go test -v -race -count=1 ./...
+        working-directory: consumerbench
+
+      # Cheap proof that the benchmarks themselves still compile and execute.
+      # -benchtime=1x runs each body exactly once; nothing is measured here and
+      # nothing is asserted.
+      - name: Smoke-run benchmarks
+        run: go test -run=^$ -bench=. -benchtime=1x ./...
+        working-directory: consumerbench

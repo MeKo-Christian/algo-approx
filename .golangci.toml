@@ -4,6 +4,8 @@ version = "2"
 default = 'all'
 disable = [
     'depguard',
+    # Superseded by gomodguard_v2, which `default = 'all'` already enables.
+    'gomodguard',
     'godoclint',
     'gomoddirectives',
     'ireturn',
@@ -49,6 +51,14 @@ path = '.*\.go'
 
 [[linters.exclusions.rules]]
 linters = ['testpackage']
+path = '.*_test\.go'
+
+# Subtest names in table-driven tests repeat by design: 'zero', 'π/4', 'amd64'.
+# They are labels on a row, not shared values, and hoisting them into constants
+# makes the tables harder to read while protecting nothing. goconst stays on
+# where it earns its keep, in non-test code.
+[[linters.exclusions.rules]]
+linters = ['goconst']
 path = '.*_test\.go'
 
 [severity]

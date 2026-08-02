@@ -6,6 +6,19 @@ build:
 test:
     go test -v -race -count=1 ./...
 
+# Build, vet and test the nested consumerbench module.
+# `go build ./...` and `go test ./...` at the root do NOT descend into nested
+# modules, so this recipe is the only thing that covers consumerbench/ at all.
+# It carries TestCrossModuleInlining -- the static gate on the cross-module
+# inlining property -- and finishes with a -benchtime=1x smoke run that proves
+# the benchmarks still compile and execute without measuring anything.
+# Mirrors the test-consumer job in .github/workflows/test-unit.yaml.
+test-consumer:
+    cd consumerbench && go build -v ./...
+    cd consumerbench && go vet ./...
+    cd consumerbench && go test -v -race -count=1 ./...
+    cd consumerbench && go test -run=^$ -bench=. -benchtime=1x ./...
+
 # Run benchmarks
 bench:
     go test -bench=. -benchmem -run=^$ ./...
@@ -22,13 +35,18 @@ bench-published:
 bench-consumer:
     cd consumerbench && GOMAXPROCS=1 go test -run=^$ -bench=. -benchtime=400ms -count=6 .
 
-# Run linters
+# Run linters.
+# The second line is not redundant: consumerbench/ is a nested module and
+# golangci-lint, like `go test ./...`, does not descend into one. Run from
+# inside it, golangci-lint walks up and finds the same .golangci.toml.
 lint:
     golangci-lint run
+    cd consumerbench && golangci-lint run
 
 # Run linters and fix issues
 lint-fix:
     golangci-lint run --fix
+    cd consumerbench && golangci-lint run --fix
 
 # Format code using treefmt
 fmt:
@@ -43,8 +61,11 @@ cover:
 clean:
     rm -f coverage.txt coverage.html
 
-# Run all checks (test, lint, coverage)
-check: test lint cover
+# Run all checks (test, nested consumer module, lint, coverage).
+# test-consumer is not optional here: it is the local mirror of the CI job that
+# covers consumerbench/, and `just check` and the GitHub workflow must not
+# disagree about what is gated.
+check: test test-consumer lint cover
 
 # Cross-compile for ARM64
 build-arm64:

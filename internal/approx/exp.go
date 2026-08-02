@@ -43,7 +43,8 @@ func exp64(xflt float64, prec Precision) float64 {
 	var res float64
 
 	if k > -1023 && k < 1024 {
-		pow2k := math.Float64frombits(uint64(k+1023) << 52) //nolint:gosec
+		// The guard puts k+1023 in (0, 2047), so the conversion cannot wrap.
+		pow2k := math.Float64frombits(uint64(k+1023) << 52)
 		res = expr * pow2k
 	} else {
 		res = math.Ldexp(expr, k)
