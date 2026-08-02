@@ -42,15 +42,25 @@ go test -run=^$ -fuzz=FuzzFastLog -fuzztime=30s .
 Three layers, and the boundaries exist for measured reasons:
 
 1. **`approx.go` (root)** — public API only. Every function is a one-line forward
-   to `internal/approx`, in three flavours per operation: generic `FastX[T]`,
-   precision-taking `FastXPrec[T]`, and concrete `FastX32`/`FastX64`.
-   `PrecisionAuto` is resolved to `PrecisionBalanced` here by
-   `normalizePrecision` (`options.go`).
-2. **`internal/approx/`** — the algorithms. One file per operation.
+   to `internal/approx` or `internal/simd`, in three flavours per scalar
+   operation: generic `FastX[T]`, precision-taking `FastXPrec[T]`, and concrete
+   `FastX32`/`FastX64`. `PrecisionAuto` is resolved to `PrecisionBalanced` here
+   by `normalizePrecision` (`options.go`). The four **batch** entry points
+   (`FastExpBatch32/64`, `FastTanhLogCoshBatch32/64`) follow the same one-line
+   rule — no loop bodies in `approx.go`. Their shared contract (lengths,
+   aliasing, no `Precision` argument) is documented once in `doc.go` under
+   `# Batch functions`; the per-function comments refer to it rather than
+   repeating it.
+2. **`internal/approx/`** — the algorithms. One file per operation, plus
+   `batch.go` for the float64 slice loops.
 3. **`internal/simd/`** — float32-native _batch_ (slice) kernels, plus AVX2+FMA
-   assembly for `exp` and for the fused `tanh`/`log(cosh)`. **Not reachable from
-   the public API yet** — the batch API's naming is deliberately deferred
-   (PLAN.md §6.2).
+   assembly for `exp` and for the fused `tanh`/`log(cosh)`. **Reachable from the
+   public API** as of the batch entry points above: `FastExpBatch32` forwards to
+   `simd.ExpFloat32` and `FastTanhLogCoshBatch32` to `simd.TanhLogCoshFloat32`.
+   Two consequences worth knowing before editing here: this package's accuracy
+   figures are now public behaviour and live in `ACCURACY.md`, and the root
+   module's transitive dependency on `golang.org/x/sys` (via `internal/cpu`) is
+   now on the public import path, so `consumerbench/go.sum` carries it too.
    This layer exists because it is where the remaining performance is: the
    scalar kernels are at or below `math`'s cost, while AVX2 `exp` measures
    **11.5–12.3x** over the pure-Go batch loop and **44–49x** over the scalar API,
@@ -210,10 +220,29 @@ public API surface or the shim structure must also be run through
 inlining test inspects — keep a call site there for any new public entry point
 that follows the kernel+shim pattern.
 
+**The batch entry points have call sites there but are deliberately absent from
+`inline_test.go`'s `[]string{"Log","Exp","Tanh","LogCosh"}` list.** A batch body
+is a loop over a whole slice; it is far past the inline budget and will never
+inline, and it does not need to — one call amortises over thousands of elements,
+which is the entire premise. `TestCrossModuleInlining` must stay green on
+exactly those four operations. Adding a batch function to that list converts the
+repo's core regression gate into a permanently failing one, which is strictly
+worse than having no gate.
+
 ## Invariants the tests pin (don't "optimize" these away)
 
-- **Zero allocations** for every public function, float32 and float64 —
-  `approx_alloc_test.go`.
+- **Zero allocations** for every public function, float32 and float64,
+  scalar and batch — `approx_alloc_test.go`. The batch cases hoist their buffers
+  outside the measured closure; allocating inside it would measure `make`.
+- **The float64 batch loops are bit-identical to their scalar twins**, and
+  `approx_batch_test.go` asserts that with no tolerance at all. They call the
+  same kernels, so any difference is a copied-and-drifted branch point rather
+  than a rounding artefact, and a tolerance would hide exactly that. The fused
+  `tanhLogCosh64` reads the same `tanhBranch` and the same single
+  `expNeg2` as `tanh64`/`logCosh64` for this reason. The float32 batch path is a
+  different algorithm and is pinned to a derived ulp bound instead — the _sum_
+  of the two paths' accuracy bounds, since they are asymmetric (38 and 1 for
+  `exp`). See `ACCURACY.md`.
 - **`FastTanh`/`FastLogCosh` are a consistent pair.** `tanh` is exactly
   `d/dx log(cosh x)`; both are built from one shared `u = exp(-2|x|)` and share
   one branch point (`0.625`, identical in scalar and SIMD paths) so the identity

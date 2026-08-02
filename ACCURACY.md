@@ -76,12 +76,12 @@ instead of the approximation's.
 Sample sets mirror the float64 ones at 4001 points, with one exception noted
 below.
 
-| Function        | Fast | Balanced | High |
-| --------------- | ---: | -------: | ---: |
-| `FastExp32`     | 9414 |       38 |    1 |
-| `FastLog32`     | 14876 |     103 |    1 |
-| `FastTanh32`    |  197 |        1 |    0 |
-| `FastLogCosh32` | 1162 |        0 |    0 |
+| Function        |  Fast | Balanced | High |
+| --------------- | ----: | -------: | ---: |
+| `FastExp32`     |  9414 |       38 |    1 |
+| `FastLog32`     | 14876 |      103 |    1 |
+| `FastTanh32`    |   197 |        1 |    0 |
+| `FastLogCosh32` |  1162 |        0 |    0 |
 
 `FastTanh32` and `FastLogCosh32` are thin shims over float64 kernels that are
 already accurate to 2.5e-9 and 3.1e-9, so at `PrecisionBalanced` the float32
@@ -95,6 +95,49 @@ This also settles a question the float64 table invites: the existing
 outputs live in $[-1, 1]$, where float32 spacing just below 1.0 is 5.96e-8, so
 1e-7 is about 1.7 ulp — and the measured float32 `MaxAbsError` is exactly one
 spacing, 5.96e-08.
+
+### The batch float32 kernels are more accurate than the scalar ones
+
+`FastExpBatch32` and `FastTanhLogCoshBatch32` are public behaviour, so their
+numbers belong here rather than in an internal package comment. Measured against
+float64 references rounded once to float32, over the **whole representable
+domain** of each function — not a sweep, every one of the 2³² float32 bit
+patterns:
+
+| Batch function                        |                max ulp |
+| ------------------------------------- | ---------------------: |
+| `FastExpBatch32`                      |                      1 |
+| `FastTanhLogCoshBatch32`, `tanh`      |                      1 |
+| `FastTanhLogCoshBatch32`, `log(cosh)` | 2 (4 just above 0.625) |
+
+The 4 ulp is confined to the seam just above the branch point at
+$|x| = 0.625$; see `logCoshLarge32` in `internal/simd`.
+
+**The batch and scalar float32 paths are not bit-identical, and the batch path
+is the more accurate of the two.** The scalar `*32` entry points are thin shims
+over the float64 kernels: they widen, evaluate a Taylor series in float64, and
+round once. The batch kernels are float32-native minimax polynomials with
+FMA-contracted evaluation. For `exp` that is the difference between **38 ulp and
+1** — roughly 28× — and the reason is the basis, not the width: the balanced
+`expPoly` is a degree-5 Taylor whose truncation is $|r|^6/720 = 2.4$e-6 at
+$|r| \le \ln 2/2$, i.e. ~20 float32 ulp before any rounding at all. Going
+minimax at equal degree buys ~3 ulp for free.
+
+Code that mixes the two paths should therefore expect a disagreement, and the
+derived agreement bound is the **sum** of the two accuracy bounds, not twice
+either one: 38 + 1 = 39 ulp for `exp`, 1 + 1 = 2 for `tanh`, 0 + 4 = 4 for
+`log(cosh)`. `approx_batch_test.go` pins exactly those bounds, and `exp`
+measures 39 — right at the derived ceiling, which is what confirms the
+derivation rather than what threatens it.
+
+The AVX2 kernels are separately verified against their pure-Go twins over all
+2³² bit patterns: `exp` within 1 ulp (99.95 % bit-identical), `tanh` 2 ulp
+(99.98 %), `log(cosh)` 4 ulp (99.99 %). The residual is FMA contraction — the
+assembly fuses its multiply-adds and Go's amd64 backend never does — and at the
+seam where the worst cases live the assembly is fractionally _closer_ to the
+truth than the pure-Go kernel on both outputs. So `FastExpBatch32` gives the
+same answer to within 1 ulp whether or not the host has AVX2, and neither
+answer is the worse one for having taken the vector path.
 
 `FastLog32`'s sweep drops the band $|\ln x| < 1$. There the output passes
 through zero, where any nonzero absolute error is an unbounded ulp count: the

@@ -58,9 +58,14 @@ package simd
 //
 // dst must be at least as long as src. See the package doc for the aliasing
 // rule.
+//
+// The panic below names approx.FastExpBatch32 rather than this function, and
+// that is deliberate: this package is internal, so the only way a caller can
+// reach this panic is through that public entry point, and a message naming a
+// package the caller cannot import would send them looking in the wrong place.
 func ExpFloat32(dst, src []float32) {
 	if len(dst) < len(src) {
-		panic("simd: ExpFloat32: dst shorter than src")
+		panic("approx: FastExpBatch32: dst shorter than src")
 	}
 
 	n := len(src)
@@ -78,11 +83,11 @@ func ExpFloat32(dst, src []float32) {
 // both destinations independently.
 func TanhLogCoshFloat32(dstTanh, dstLogCosh, src []float32) {
 	if len(dstTanh) < len(src) {
-		panic("simd: TanhLogCoshFloat32: dstTanh shorter than src")
+		panic("approx: FastTanhLogCoshBatch32: dstTanh shorter than src")
 	}
 
 	if len(dstLogCosh) < len(src) {
-		panic("simd: TanhLogCoshFloat32: dstLogCosh shorter than src")
+		panic("approx: FastTanhLogCoshBatch32: dstLogCosh shorter than src")
 	}
 
 	n := len(src)

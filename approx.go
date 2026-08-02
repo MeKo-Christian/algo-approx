@@ -1,6 +1,9 @@
 package approx
 
-import iapprox "github.com/cwbudde/algo-approx/internal/approx"
+import (
+	iapprox "github.com/cwbudde/algo-approx/internal/approx"
+	"github.com/cwbudde/algo-approx/internal/simd"
+)
 
 // FastLog returns an approximate natural logarithm ln(x) using the default precision.
 func FastLog[T Float](x T) T { return FastLogPrec(x, PrecisionAuto) }
@@ -23,6 +26,24 @@ func FastExpPrec[T Float](x T, prec Precision) T {
 
 func FastExp32(x float32) float32 { return FastExp[float32](x) }
 func FastExp64(x float64) float64 { return FastExp[float64](x) }
+
+// FastExpBatch32 writes exp(src[i]) to dst[i] for every element of src.
+//
+// This is the float32 SIMD path, not a loop over FastExp32: it runs an AVX2+FMA
+// kernel where the CPU has both features and a float32-native pure-Go kernel
+// otherwise, measures ~11-12x faster per element than a scalar loop, and is
+// more accurate than FastExp32 (1 ulp against 38). It is therefore not
+// bit-identical to FastExp32; see ACCURACY.md. See "Batch functions" in the
+// package doc for the length and aliasing rules.
+func FastExpBatch32(dst, src []float32) { simd.ExpFloat32(dst, src) }
+
+// FastExpBatch64 writes exp(src[i]) to dst[i] for every element of src.
+//
+// There is no float64 SIMD kernel; this is a scalar loop over the same code
+// FastExp64 runs, so it is bit-identical to it and the only saving is the
+// amortised call frame. See "Batch functions" in the package doc for the length
+// and aliasing rules.
+func FastExpBatch64(dst, src []float64) { iapprox.ExpBatch64(dst, src) }
 
 // FastTanh returns an approximate hyperbolic tangent using the default precision.
 func FastTanh[T Float](x T) T { return FastTanhPrec(x, PrecisionAuto) }
@@ -65,6 +86,31 @@ func FastLogCoshPrec[T Float](x T, prec Precision) T {
 
 func FastLogCosh32(x float32) float32 { return FastLogCosh[float32](x) }
 func FastLogCosh64(x float64) float64 { return FastLogCosh[float64](x) }
+
+// FastTanhLogCoshBatch32 writes tanh(src[i]) to dstTanh[i] and log(cosh(src[i]))
+// to dstLogCosh[i] for every element of src.
+//
+// Both outputs come from one fused pass that shares u = exp(-2|x|) and one
+// branch point, so the pair stays consistent exactly as the scalar pair does.
+// This is the float32 SIMD path: an AVX2+FMA kernel where available, ~10-12x
+// faster per element than a scalar loop, and not bit-identical to
+// FastTanh32/FastLogCosh32 (see ACCURACY.md). See "Batch functions" in the
+// package doc for the length and aliasing rules.
+func FastTanhLogCoshBatch32(dstTanh, dstLogCosh, src []float32) {
+	simd.TanhLogCoshFloat32(dstTanh, dstLogCosh, src)
+}
+
+// FastTanhLogCoshBatch64 writes tanh(src[i]) to dstTanh[i] and log(cosh(src[i]))
+// to dstLogCosh[i] for every element of src.
+//
+// A scalar loop, bit-identical to FastTanh64 and FastLogCosh64 element by
+// element, but a genuinely fused one: the expensive u = exp(-2|x|) is evaluated
+// once per element instead of once per output, so it beats two separate scalar
+// loops. See "Batch functions" in the package doc for the length and aliasing
+// rules.
+func FastTanhLogCoshBatch64(dstTanh, dstLogCosh, src []float64) {
+	iapprox.TanhLogCoshBatch64(dstTanh, dstLogCosh, src)
+}
 
 // FastSin returns an approximate sine using the default precision.
 func FastSin[T Float](x T) T { return FastSinPrec(x, PrecisionAuto) }
