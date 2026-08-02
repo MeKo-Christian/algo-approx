@@ -5,24 +5,6 @@ import (
 	"testing"
 )
 
-func TestPublicAPI_Sqrt(t *testing.T) {
-	t.Parallel()
-
-	got := FastSqrt(16.0)
-	if math.Abs(got-4.0) > 1e-2 {
-		t.Fatalf("FastSqrt(16) got %g", got)
-	}
-}
-
-func TestPublicAPI_InvSqrt(t *testing.T) {
-	t.Parallel()
-
-	got := FastInvSqrt(4.0)
-	if math.Abs(got-0.5) > 1e-2 {
-		t.Fatalf("FastInvSqrt(4) got %g", got)
-	}
-}
-
 func TestPublicAPI_LogExp(t *testing.T) {
 	t.Parallel()
 
@@ -681,104 +663,6 @@ func TestFastLogCosh_EdgeCases(t *testing.T) {
 	for _, x := range []float64{0, math.Copysign(0, -1)} {
 		if got := FastLogCosh(x); got != 0 || math.Signbit(got) {
 			t.Fatalf("FastLogCosh(%v) = %v, want +0", x, got)
-		}
-	}
-}
-
-// --- FastRecip ------------------------------------------------------------
-
-func TestFastRecip_EdgeCases(t *testing.T) {
-	t.Parallel()
-
-	if got := FastRecip(math.NaN()); !math.IsNaN(got) {
-		t.Fatalf("FastRecip(NaN) = %v, want NaN", got)
-	}
-
-	if got := FastRecip(0.0); !math.IsInf(got, 1) {
-		t.Fatalf("FastRecip(+0) = %v, want +Inf", got)
-	}
-
-	if got := FastRecip(math.Copysign(0, -1)); !math.IsInf(got, -1) {
-		t.Fatalf("FastRecip(-0) = %v, want -Inf", got)
-	}
-
-	if got := FastRecip(math.Inf(1)); got != 0 || math.Signbit(got) {
-		t.Fatalf("FastRecip(+Inf) = %v, want +0", got)
-	}
-
-	if got := FastRecip(math.Inf(-1)); got != 0 || !math.Signbit(got) {
-		t.Fatalf("FastRecip(-Inf) = %v, want -0", got)
-	}
-}
-
-// TestFastRecip_Subnormals covers the inputs whose biased exponent is zero,
-// where the mantissa carries no implicit leading 1.
-func TestFastRecip_Subnormals(t *testing.T) {
-	t.Parallel()
-
-	cases := []float64{
-		math.SmallestNonzeroFloat64,
-		1e-320,
-		1e-315,
-		5e-310,
-		2.2250738585072011e-308, // largest subnormal
-	}
-
-	for _, x := range cases {
-		// 1/x overflows for the smallest of these, exactly as a divide does.
-		want := 1 / x
-
-		got := FastRecipPrec(x, PrecisionHigh)
-		if math.IsInf(want, 0) {
-			if !math.IsInf(got, 1) {
-				t.Fatalf("FastRecip(%g) = %v, want +Inf", x, got)
-			}
-
-			continue
-		}
-
-		if rel := math.Abs(got-want) / want; rel > 1e-15 {
-			t.Fatalf("FastRecip(%g) = %v, want %v (rel %g)", x, got, want, rel)
-		}
-
-		if FastRecipPrec(-x, PrecisionHigh) != -got {
-			t.Fatalf("FastRecip is not exactly odd at %g", x)
-		}
-	}
-}
-
-func TestFastRecip_RelativeErrorByPrecision(t *testing.T) {
-	t.Parallel()
-
-	limits := map[Precision]float64{
-		PrecisionFast:     3e-8,
-		PrecisionBalanced: 1e-15,
-		PrecisionHigh:     2.3e-16, // one ulp
-	}
-
-	for prec, limit := range limits {
-		var worst, worstAt float64
-
-		for i := range 200001 {
-			// Log-spaced over the whole normal range, both signs.
-			x := math.Pow(10, -300+600*float64(i)/200000.0)
-			if i%2 == 1 {
-				x = -x
-			}
-
-			want := 1 / x
-
-			rel := math.Abs(FastRecipPrec(x, prec)-want) / math.Abs(want)
-			if rel > worst {
-				worst, worstAt = rel, x
-			}
-		}
-
-		t.Logf("FastRecip %v: max rel error %.4g at x=%g", prec, worst, worstAt)
-
-		if worst > limit {
-			t.Fatalf("FastRecip %v: max rel error %g at x=%g exceeds %g",
-				prec, worst, worstAt, limit)
 		}
 	}
 }

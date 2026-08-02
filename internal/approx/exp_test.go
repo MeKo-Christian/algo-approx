@@ -5,6 +5,19 @@ import (
 	"testing"
 )
 
+// closeRel reports whether got is within tol relative error of ref, falling
+// back to an absolute comparison when ref is zero.
+func closeRel(got, ref, tol float64) bool {
+	dval := math.Abs(got - ref)
+
+	den := math.Abs(ref)
+	if den == 0 {
+		return dval <= tol
+	}
+
+	return dval/den <= tol
+}
+
 func TestExpAgainstMath_Float64(t *testing.T) {
 	t.Parallel()
 

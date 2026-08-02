@@ -31,8 +31,14 @@ jobs:
       - name: Build
         run: go build -v ./...
 
+      # -coverprofile is quoted because the Windows runner executes `run:` under
+      # pwsh, whose argument-mode parser splits a bareword at the dot: the token
+      # `-coverprofile=coverage.txt` arrives as `-coverprofile=coverage` plus a
+      # separate `.txt`, which `go test` then reads as a package name and fails
+      # with "no required module provides package .txt". Quoting keeps it one
+      # argument; ubuntu and macos are unaffected either way.
       - name: Run tests
-        run: go test -v -race -count=1 -coverprofile=coverage.txt -covermode=atomic ./...
+        run: go test -v -race -count=1 '-coverprofile=coverage.txt' -covermode=atomic ./...
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5

@@ -59,9 +59,7 @@ func TestCrossModuleInlining(t *testing.T) {
 	lines := strings.Split(string(out), "\n")
 
 	// Every algorithm that was converted to the kernel-plus-shim structure.
-	// Sqrt and InvSqrt are deliberately absent: they are genuinely generic and
-	// were left alone.
-	for _, name := range []string{"Log", "Exp", "Tanh", "LogCosh", "Recip"} {
+	for _, name := range []string{"Log", "Exp", "Tanh", "LogCosh"} {
 		// The internal generic shim must still be small enough to inline. If
 		// the arithmetic moves back into the generic body, this is the line
 		// that disappears.

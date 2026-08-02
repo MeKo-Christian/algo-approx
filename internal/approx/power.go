@@ -59,9 +59,11 @@ func Root[T Float](value T, n int) T {
 		return 0
 	}
 
-	// Special case for square root (most common case)
+	// Special case for square root (most common case). math.Sqrt is a single
+	// hardware instruction on every GOARCH the compiler intrinsifies it on, so
+	// it is both faster and more accurate than any approximation here.
 	if n == 2 {
-		return Sqrt(value, PrecisionBalanced)
+		return T(math.Sqrt(float64(value)))
 	}
 
 	// For nth root: value^(1/n)

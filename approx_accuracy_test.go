@@ -14,30 +14,6 @@ func TestAccuracy_Balanced_MinimumDigits(t *testing.T) {
 	// right ballpark and remain stable across refactors.
 	const minDigits = 2.0
 
-	sqrtSamples := logSpaced(2001, -12, 12)
-
-	mSqrt := reference.MeasureAccuracy[float64](
-		sqrtSamples,
-		reference.Sqrt[float64],
-		func(x float64) float64 { return float64(approx.FastSqrtPrec(x, approx.PrecisionBalanced)) },
-	)
-	t.Logf("sqrt balanced: %+v", mSqrt)
-
-	if mSqrt.DecimalDigits < minDigits {
-		t.Fatalf("sqrt balanced too inaccurate: digits=%g metrics=%+v", mSqrt.DecimalDigits, mSqrt)
-	}
-
-	mInvSqrt := reference.MeasureAccuracy[float64](
-		sqrtSamples,
-		reference.InvSqrt[float64],
-		func(x float64) float64 { return float64(approx.FastInvSqrtPrec(x, approx.PrecisionBalanced)) },
-	)
-	t.Logf("invsqrt balanced: %+v", mInvSqrt)
-
-	if mInvSqrt.DecimalDigits < minDigits {
-		t.Fatalf("invsqrt balanced too inaccurate: digits=%g metrics=%+v", mInvSqrt.DecimalDigits, mInvSqrt)
-	}
-
 	logSamples := logSpaced(2001, -12, 6)
 
 	mLog := reference.MeasureAccuracy[float64](
@@ -65,10 +41,10 @@ func TestAccuracy_Balanced_MinimumDigits(t *testing.T) {
 	}
 }
 
-// TestAccuracy_Balanced_HyperbolicAndRecip covers the functions added after the
+// TestAccuracy_Balanced_Hyperbolic covers the functions added after the
 // Phase 1 MVP. Unlike the block above these carry real targets rather than a
 // coarse floor, because they were specified with one.
-func TestAccuracy_Balanced_HyperbolicAndRecip(t *testing.T) {
+func TestAccuracy_Balanced_Hyperbolic(t *testing.T) {
 	t.Parallel()
 
 	tanhSamples := linSpaced(4001, -20, 20)
@@ -95,19 +71,6 @@ func TestAccuracy_Balanced_HyperbolicAndRecip(t *testing.T) {
 
 	if mLogCosh.MaxAbsError > 1e-7 {
 		t.Fatalf("logcosh balanced max abs error %g exceeds 1e-7: %+v", mLogCosh.MaxAbsError, mLogCosh)
-	}
-
-	recipSamples := logSpaced(4001, -150, 150)
-
-	mRecip := reference.MeasureAccuracy[float64](
-		recipSamples,
-		reference.Recip[float64],
-		func(x float64) float64 { return approx.FastRecipPrec(x, approx.PrecisionBalanced) },
-	)
-	t.Logf("recip balanced: %+v", mRecip)
-
-	if mRecip.MaxRelError > 1e-15 {
-		t.Fatalf("recip balanced max rel error %g exceeds 1e-15: %+v", mRecip.MaxRelError, mRecip)
 	}
 }
 

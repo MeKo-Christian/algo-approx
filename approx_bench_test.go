@@ -12,8 +12,9 @@ import (
 // (`float64((i%1000)+1) * 1.001`: an integer division, a conversion and a
 // multiply), which cost roughly 1.2 ns and was added to both sides of every
 // comparison. That dilutes every ratio towards 1.0, and it dilutes the cheap
-// operations most: math.Sqrt is a single SQRTSD at ~0.3 ns amortised, so a
-// 1.2 ns overhead made it look several times more expensive than it is.
+// operations most: a single hardware instruction costs a fraction of a
+// nanosecond, so a 1.2 ns overhead made it look several times more expensive
+// than it is.
 //
 // The inputs are therefore precomputed into a power-of-two table and indexed
 // with a mask, which costs a load and an AND. BenchmarkHarnessOverhead_Float64
@@ -25,8 +26,7 @@ const (
 
 var benchSink64 float64 //nolint:gochecknoglobals
 
-// benchPositive spans (0, ~1000]: the domain shared by sqrt, invsqrt, log and
-// recip.
+// benchPositive spans (0, ~1000]: the domain of log.
 var benchPositive = makeBenchTable(func(t float64) float64 { //nolint:gochecknoglobals
 	return 1e-3 + t*1000
 })
@@ -64,50 +64,6 @@ func BenchmarkHarnessOverhead_Float64(b *testing.B) {
 	var acc float64
 	for i := range b.N {
 		acc += benchPositive[i&benchTableMask]
-	}
-
-	benchSink64 = acc
-}
-
-func BenchmarkFastSqrt_Float64(b *testing.B) {
-	b.ReportAllocs()
-
-	var acc float64
-	for i := range b.N {
-		acc += FastSqrt(benchPositive[i&benchTableMask])
-	}
-
-	benchSink64 = acc
-}
-
-func BenchmarkMathSqrt_Float64(b *testing.B) {
-	b.ReportAllocs()
-
-	var acc float64
-	for i := range b.N {
-		acc += math.Sqrt(benchPositive[i&benchTableMask])
-	}
-
-	benchSink64 = acc
-}
-
-func BenchmarkFastInvSqrt_Float64(b *testing.B) {
-	b.ReportAllocs()
-
-	var acc float64
-	for i := range b.N {
-		acc += FastInvSqrt(benchPositive[i&benchTableMask])
-	}
-
-	benchSink64 = acc
-}
-
-func BenchmarkMathInvSqrt_Float64(b *testing.B) {
-	b.ReportAllocs()
-
-	var acc float64
-	for i := range b.N {
-		acc += 1.0 / math.Sqrt(benchPositive[i&benchTableMask])
 	}
 
 	benchSink64 = acc
@@ -267,75 +223,4 @@ func BenchmarkNaiveLogCosh_Float64(b *testing.B) {
 	}
 
 	benchSink64 = acc
-}
-
-// Reciprocal: the dependent-chain and the independent-throughput case give
-// different answers, because DIVSD has long latency but decent throughput.
-// Both are published; a caller has to know which shape their loop has.
-
-func BenchmarkFastRecip_Chain_Float64(b *testing.B) {
-	b.ReportAllocs()
-
-	acc := 1.0
-	for i := range b.N {
-		acc = FastRecip(acc + benchPositive[i&benchTableMask])
-	}
-
-	benchSink64 = acc
-}
-
-func BenchmarkDivRecip_Chain_Float64(b *testing.B) {
-	b.ReportAllocs()
-
-	acc := 1.0
-	for i := range b.N {
-		acc = 1.0 / (acc + benchPositive[i&benchTableMask])
-	}
-
-	benchSink64 = acc
-}
-
-func BenchmarkFastRecip_Throughput_Float64(b *testing.B) {
-	b.ReportAllocs()
-
-	var a0, a1, a2, a3 float64
-
-	for i := 0; i < b.N; i += 4 {
-		a0 += FastRecip(benchPositive[i&benchTableMask])
-		a1 += FastRecip(benchPositive[(i+1)&benchTableMask])
-		a2 += FastRecip(benchPositive[(i+2)&benchTableMask])
-		a3 += FastRecip(benchPositive[(i+3)&benchTableMask])
-	}
-
-	benchSink64 = a0 + a1 + a2 + a3
-}
-
-func BenchmarkDivRecip_Throughput_Float64(b *testing.B) {
-	b.ReportAllocs()
-
-	var a0, a1, a2, a3 float64
-
-	for i := 0; i < b.N; i += 4 {
-		a0 += 1.0 / benchPositive[i&benchTableMask]
-		a1 += 1.0 / benchPositive[(i+1)&benchTableMask]
-		a2 += 1.0 / benchPositive[(i+2)&benchTableMask]
-		a3 += 1.0 / benchPositive[(i+3)&benchTableMask]
-	}
-
-	benchSink64 = a0 + a1 + a2 + a3
-}
-
-func BenchmarkFastRecipPrec_Fast_Throughput_Float64(b *testing.B) {
-	b.ReportAllocs()
-
-	var a0, a1, a2, a3 float64
-
-	for i := 0; i < b.N; i += 4 {
-		a0 += FastRecipPrec(benchPositive[i&benchTableMask], PrecisionFast)
-		a1 += FastRecipPrec(benchPositive[(i+1)&benchTableMask], PrecisionFast)
-		a2 += FastRecipPrec(benchPositive[(i+2)&benchTableMask], PrecisionFast)
-		a3 += FastRecipPrec(benchPositive[(i+3)&benchTableMask], PrecisionFast)
-	}
-
-	benchSink64 = a0 + a1 + a2 + a3
 }

@@ -215,7 +215,7 @@ func tanhLogCoshKernel32(x float32) (float32, float32) {
 // All three slices are resliced to a common length first so the compiler can
 // prove the block indexing safe and drop the bounds checks.
 //
-//nolint:varnamelen,funlen,gosec // four-lane pipelining; gosec cannot see the 3-index slice bounds.
+//nolint:varnamelen,funlen // four-lane pipelining.
 func tanhLogCoshBatch32Go(dstTanh, dstLogCosh, src []float32) {
 	n := min(len(src), len(dstTanh), len(dstLogCosh))
 

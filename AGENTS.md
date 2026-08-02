@@ -5,7 +5,7 @@ This file provides guidance to AI agents (Claude Code, Codex etc.) when working 
 ## What this is
 
 `github.com/cwbudde/algo-approx` — fast, allocation-free scalar math approximations
-(`sqrt`, `invsqrt`, `log`, `exp`, trig/arctrig, `tanh`, `logcosh`, `recip`, `power`),
+(`log`, `exp`, trig/arctrig, `tanh`, `logcosh`, `power`),
 generic over `float32`/`float64`, with a `Precision` knob. Ported from
 `reference_approx.pas` (a read-only Pascal source kept for reference; see the
 translation guide at the end of `PLAN.md`). `PLAN.md` is the phase roadmap and
@@ -47,13 +47,16 @@ Three layers, and the boundaries exist for measured reasons:
    `PrecisionAuto` is resolved to `PrecisionBalanced` here by
    `normalizePrecision` (`options.go`).
 2. **`internal/approx/`** — the algorithms. One file per operation.
-3. **`internal/simd/`** — float32-native _batch_ (slice) kernels, plus an
-   AVX2+FMA assembly `exp`. **Not reachable from the public API yet** — the
-   batch API's naming is deliberately deferred (PLAN.md §6.2).
+3. **`internal/simd/`** — float32-native _batch_ (slice) kernels, plus AVX2+FMA
+   assembly for `exp` and for the fused `tanh`/`log(cosh)`. **Not reachable from
+   the public API yet** — the batch API's naming is deliberately deferred
+   (PLAN.md §6.2).
    This layer exists because it is where the remaining performance is: the
    scalar kernels are at or below `math`'s cost, while AVX2 `exp` measures
-   **11.5–12.3x** over the pure-Go batch loop and **44–49x** over the scalar API
-   (`PLAN.md` §6.0 has the table and two caveats on how to read it).
+   **11.5–12.3x** over the pure-Go batch loop and **44–49x** over the scalar API,
+   and the fused `tanh`/`log(cosh)` measures **10.0–11.8x** and **21–24x**
+   respectively (`PLAN.md` §6.0 and §6.0.1 have the tables and the caveats on
+   how to read them).
    `dst` and `src` must be **identical or non-overlapping** — an 8-wide
    load/store block is not elementwise, so partial overlap is correct in the Go
    kernel and garbage in the vector one, and two-distinct-slice tests never
@@ -105,17 +108,56 @@ easy to get backwards. These were pinned by an assembled probe, not reasoned out
 | `VFMADD213PS Ysrc2, Ysrc1, Ydst`  | `dst = src1*dst + src2`                                    |
 | `VFNMADD231PS Ysrc2, Ysrc1, Ydst` | `dst = dst - src1*src2`                                    |
 | `VPSUBD Ysrc2, Ysrc1, Ydst`       | `dst = src1 - src2`                                        |
+| `VDIVPS Yb, Ya, Ydst`             | `dst = a / b` — the **divisor comes first**                |
+| `VSUBPS Yb, Ya, Ydst`             | `dst = a - b`                                              |
+| `VANDNPS Yb, Ya, Ydst`            | `dst = ^a & b` — the **first** operand is the negated one  |
+| `VBLENDVPS Ymask, Yb, Ya, Ydst`   | picks `b` where mask's sign bit is set, `a` where clear    |
 | `VROUNDPS $0x08, Ysrc, Ydst`      | round to nearest, ties to **even**, no precision exception |
 
 Spot-checks that distinguish the right reading from a plausible wrong one:
 with `dst=2, src1=3, src2=5`, `VFMADD213PS` gives **11** and `VFNMADD231PS`
-gives **-13**; `VROUNDPS $0x08` maps `[2.5 3.5 -2.5 0.5 1.5]` to `[2 4 -2 0 2]`.
+gives **-13**; `VROUNDPS $0x08` maps `[2.5 3.5 -2.5 0.5 1.5]` to `[2 4 -2 0 2]`;
+`VDIVPS` with `a=10, b=4` gives **2.5** and not 0.4.
 If a new kernel disagrees with its Go twin by a wild margin, re-run these before
 suspecting the maths.
+
+**The first Plan 9 operand may be a memory reference**, and for the FMA forms
+this is load-bearing rather than a convenience: `VFMADD213PS someConst<>(SB),
+Y1, Y0` means `Y0 = Y1*Y0 + const`. A polynomial evaluated this way needs no
+register for its coefficients at all, which is the only reason the fused
+tanh/log(cosh) kernel fits — it has roughly 35 constants and 16 registers.
+
+**`VMINPS`/`VMAXPS` are the exception and must keep their constants in
+registers.** They return SRC2 when either input is NaN, and SRC2 is the same
+operand slot a memory reference would have to occupy. Feed the clamp constant
+from memory and every NaN silently comes back as the clamp value, which no
+accuracy test over a finite grid will ever see.
 
 `go vet`'s `asmdecl` pass checks FP offsets and frame sizes — it requires the
 `dst_base+0(FP)` / `dst_len+8(FP)` spelling for slice arguments. (algo-fft's
 `dst+0(FP)` style is what asmdecl flags; this repo uses the vet-clean form.)
+
+### Register budget across a shared macro
+
+`EXPBODY` lives in `exp32_amd64.h` and is included by both `exp32_amd64.s` and
+`hyperbolic32_amd64.s`, so the shared exponential has exactly one definition and
+the two kernels cannot drift into computing subtly different results. `<>`
+symbols are file-scoped, so an included header gives each `.s` its own private
+copy of the RODATA rather than a duplicate-symbol error.
+
+**A macro's register usage is part of its contract.** `EXPBODY` originally
+broadcast ten constants into `Y6..Y15`. The fused kernel's four branch bodies
+then overwrote those registers, so every block after the first computed its
+exponential from whatever the previous block had left behind. The result: the
+first eight elements correct, everything after them NaN. A spot check at a
+handful of _x_ values would not have found it — the existing sweep tests did.
+
+The fix was to shrink the macro rather than reload constants per iteration:
+`EXPBODY` now holds only its two clamp constants in registers and reads the rest
+from RODATA as memory operands. It occupies `Y0..Y4` plus `Y6..Y7`, and
+documents that `Y5` and `Y8..Y15` belong to the caller. If you add a third
+kernel, respect that split or widen it deliberately — and re-run the exhaustive
+differential for **both** existing kernels afterwards, since they share the body.
 
 ### The kernel + shim invariant — do not break this
 
@@ -132,10 +174,8 @@ could not remove — the library won its own benchmarks and lost every caller's.
 Keeping the body non-generic makes the shim small enough to inline into an
 external caller.
 
-- Applies to `Log`, `Exp`, `Tanh`, `LogCosh`, `Recip`.
-- `Sqrt`, `InvSqrt` and the trig family are genuinely generic (they use
-  `selectImpl` in `dispatch.go` to pick a fast/balanced/high closure) and were
-  intentionally left alone.
+- Applies to `Log`, `Exp`, `Tanh`, `LogCosh`.
+- The trig family is genuinely generic and was intentionally left alone.
 - **The property is gated statically**, not by timings:
   `consumerbench/inline_test.go:TestCrossModuleInlining` parses
   `go build -gcflags=-m` output and fails if the shims stop inlining. If you
@@ -155,9 +195,10 @@ there is nothing for scalar asm to win back. Assembly pays **only** on batch
 for `FastExp64`. Passing `prec` as a runtime value defeats constant-folding of
 the `switch` in `expPoly` — **the dispatch costs more than the polynomial it
 selects.** Any batch API must resolve precision once per call and run a
-monomorphic inner loop. Note `selectImpl` (`internal/approx/dispatch.go`)
-returns a `func(T) T`; an indirect call per element would defeat the whole point
-of a batch API.
+monomorphic inner loop. The library used to carry a `selectImpl` helper that
+returned a `func(T) T` per call; it went out with `sqrt`/`invsqrt`/`recip`, and
+it is worth not reinventing — an indirect call per element would defeat the
+whole point of a batch API.
 
 ### `consumerbench/` is a separate Go module
 
@@ -198,14 +239,29 @@ that follows the kernel+shim pattern.
   dominates past degree 6.
 - **Subnormals.** `log64` rescales subnormal inputs before reading the exponent
   field; without it the result is off by up to ~36 nats (Go's own `math.Log` has
-  this bug on amd64). `FastRecip` has its own subnormal handling.
+  this bug on amd64).
 - **SIMD ↔ Go kernel agreement.** The AVX2 `exp` is verified against the pure-Go
-  kernel over all 2³² float32 bit patterns: max 1 ulp, differing only where the
-  assembly contracts FMAs. `decl_text_test.go` guards against a body-less Go
-  declaration losing its `TEXT` symbol. Read the header comment in
-  `exp32_amd64.s` before editing it — operand order in `VMINPS`/`VMAXPS`, the
-  two-step `2^k` reconstruction and VEX purity + `VZEROUPPER` are each
-  load-bearing and each fail silently.
+  kernel over all 2³² float32 bit patterns: max 1 ulp, 99.95% bit-identical,
+  differing only where the assembly contracts FMAs. `decl_text_test.go` guards
+  against a body-less Go declaration losing its `TEXT` symbol. Read the header
+  comment in `exp32_amd64.h` before editing it — operand order in
+  `VMINPS`/`VMAXPS`, the two-step `2^k` reconstruction and VEX purity +
+  `VZEROUPPER` are each load-bearing and each fail silently.
+- **Agreement bounds are twice the accuracy bound, and that is a derivation
+  rather than slack.** If each kernel is independently within _k_ ulp of the
+  true value, the two can straddle it and be _2k_ apart while both are correct.
+  So the fused kernel's differential test allows 2 ulp on `tanh` and 8 on
+  `log(cosh)`. Before widening any such bound, measure which kernel is closer to
+  a float64 reference — for both outputs here the **assembly is fractionally
+  closer than the pure-Go kernel**, so the drift is two implementations rounding
+  to different sides of a genuine cancellation, not the vector kernel losing
+  precision. A tolerance raised without that check is just a hidden bug.
+- **Assert that dispatch actually chose the assembly.** Every differential test
+  calls the AVX2 kernel directly, so the whole suite stays green even if the
+  exported wrapper silently runs the Go path on every call. The tell is an
+  "optimisation" that measures no change at all, which reads as _the kernel
+  wasn't worth it_ rather than _the kernel never ran_.
+  `TestDispatchSelectsAVX2OnCapableHost` pins it.
 
 ## Benchmarking on this hardware is a trap — read before running one
 
@@ -252,8 +308,14 @@ benchstat /tmp/b.txt                     # 3. and check the CV it prints
 `README.md` and `ACCURACY.md` contain real numbers with dates, a stated CPU and
 a stated method (harness overhead subtracted, minimum over ≥24 samples,
 `GOMAXPROCS=1`). Several sections exist specifically to record that an
-optimization was tried and _lost_ (`FastSqrt`, `FastInvSqrt`, `FastRecip` are
-all slower than `math` / `1/x` and say so). If you change a kernel's cost or
+optimization was tried and _lost_. The strongest example is now a removal:
+`FastSqrt`, `FastInvSqrt` and `FastRecip` measured 6.9x / 4.3x / 9x **slower**
+than the hardware instructions they replaced and were deleted outright — see
+`docs/removed-kernels.md`, which keeps the numerical analysis that was worth
+more than the code. The README's old justification for them ("for targets
+without a hardware square root") turned out to be false: Go intrinsifies
+`math.sqrt` on every GOARCH it supports. Check a claim like that against the
+toolchain before building on it. If you change a kernel's cost or
 accuracy, re-measure with `just bench-published` + `just bench-consumer` and
 update the tables with the new date and CPU — do not hand-edit a number, and do
 not add a performance claim that isn't backed by a run.

@@ -36,6 +36,8 @@ func goHyp(inputs []float32) ([]float32, []float32) {
 
 // compareHyp asserts the two kernels agree on every element, and returns the
 // largest disagreement it saw for each output.
+//
+//nolint:nonamedreturns // the two maxima are only meaningful when named.
 func compareHyp(tb testing.TB, inputs []float32) (maxTanh, maxLogCosh int64) {
 	tb.Helper()
 
@@ -102,6 +104,14 @@ func compareHyp(tb testing.TB, inputs []float32) (maxTanh, maxLogCosh int64) {
 // sign to log1p(u). That cancellation amplifies a half-ulp difference in u
 // into several ulp of the result, and it is the same cancellation that caps
 // logCoshLarge32's own accuracy at 4 ulp there. tanh has no such subtraction.
+//
+// Swept over all 2^32 bit patterns (4278190082 non-NaN inputs), the two kernels
+// actually reach max 2 ulp on tanh (99.98% bit-identical) and max 4 ulp on
+// log(cosh) (99.99% bit-identical). tanh therefore sits exactly at its bound
+// and log(cosh) at half of its. The looser log(cosh) bound is kept anyway
+// because 8 is what the derivation gives and the extra room costs nothing:
+// FMA scheduling differs between microarchitectures, and a bound pinned to one
+// host's observed maximum is a bound that fails on somebody else's laptop.
 //
 // Tightening either would take an algorithm change on both sides; it is not
 // something to fix in the assembly.
@@ -370,9 +380,9 @@ func TestHypAVX2ShortestLengthWins(t *testing.T) {
 		{9, 17, 13, 9},
 	}
 
-	for _, tc := range cases {
-		dstT := make([]float32, tc.nT)
-		dstL := make([]float32, tc.nL)
+	for _, tcase := range cases {
+		dstT := make([]float32, tcase.nT)
+		dstL := make([]float32, tcase.nL)
 
 		for i := range dstT {
 			dstT[i] = sentinel
@@ -382,22 +392,22 @@ func TestHypAVX2ShortestLengthWins(t *testing.T) {
 			dstL[i] = sentinel
 		}
 
-		src := make([]float32, tc.nS)
+		src := make([]float32, tcase.nS)
 		for i := range src {
 			src[i] = 1
 		}
 
 		tanhLogCoshBatch32AVX2(dstT, dstL, src)
 
-		for i := tc.want; i < len(dstT); i++ {
+		for i := tcase.want; i < len(dstT); i++ {
 			if dstT[i] != sentinel {
-				t.Fatalf("%+v: tanh index %d was written, expected only %d elements", tc, i, tc.want)
+				t.Fatalf("%+v: tanh index %d was written, expected only %d elements", tcase, i, tcase.want)
 			}
 		}
 
-		for i := tc.want; i < len(dstL); i++ {
+		for i := tcase.want; i < len(dstL); i++ {
 			if dstL[i] != sentinel {
-				t.Fatalf("%+v: logCosh index %d was written, expected only %d elements", tc, i, tc.want)
+				t.Fatalf("%+v: logCosh index %d was written, expected only %d elements", tcase, i, tcase.want)
 			}
 		}
 	}
@@ -424,7 +434,7 @@ func TestTanhLogCoshFloat32DispatchMatchesGo(t *testing.T) {
 			t.Fatalf("tanh(%v): dispatch %v, go %v, %d ulp apart", x, gotT[i], wantT[i], d)
 		}
 
-		if d := ulpDiff32(gotL[i], wantL[i]); d > hypTolTanh {
+		if d := ulpDiff32(gotL[i], wantL[i]); d > hypTolLogCosh {
 			t.Fatalf("logCosh(%v): dispatch %v, go %v, %d ulp apart", x, gotL[i], wantL[i], d)
 		}
 	}
@@ -447,11 +457,12 @@ func TestHypAVX2FullDomainDifferential(t *testing.T) {
 	const block = 1 << 12
 
 	var (
-		buf                   = make([]float32, block)
-		gotT, gotL            = make([]float32, block), make([]float32, block)
-		wantT, wantL          = make([]float32, block), make([]float32, block)
-		maxT, maxL            int64
-		exactT, exactL, total uint64
+		buf          = make([]float32, block)
+		gotT, gotL   = make([]float32, block), make([]float32, block)
+		wantT, wantL = make([]float32, block), make([]float32, block)
+		tanhStats    = ulpStats{name: "tanh", tol: hypTolTanh, worst: 0, exact: 0}
+		logCoshStats = ulpStats{name: "logCosh", tol: hypTolLogCosh, worst: 0, exact: 0}
+		total        uint64
 	)
 
 	for base := uint64(0); base < 1<<32; base += block {
@@ -474,25 +485,45 @@ func TestHypAVX2FullDomainDifferential(t *testing.T) {
 
 			total++
 
-			if math.Float32bits(gotT[j]) == math.Float32bits(wantT[j]) {
-				exactT++
-			} else if d := ulpDiff32(gotT[j], wantT[j]); d > hypTolTanh {
-				t.Fatalf("tanh(%v): asm %v, go %v, %d ulp apart", buf[j], gotT[j], wantT[j], d)
-			} else {
-				maxT = max(maxT, d)
-			}
-
-			if math.Float32bits(gotL[j]) == math.Float32bits(wantL[j]) {
-				exactL++
-			} else if d := ulpDiff32(gotL[j], wantL[j]); d > hypTolTanh {
-				t.Fatalf("logCosh(%v): asm %v, go %v, %d ulp apart", buf[j], gotL[j], wantL[j], d)
-			} else {
-				maxL = max(maxL, d)
-			}
+			tanhStats.observe(t, buf[j], gotT[j], wantT[j])
+			logCoshStats.observe(t, buf[j], gotL[j], wantL[j])
 		}
 	}
 
 	t.Logf("full domain over %d inputs:", total)
-	t.Logf("  tanh:    max %d ulp, %d (%.2f%%) bit-identical", maxT, exactT, 100*float64(exactT)/float64(total))
-	t.Logf("  logCosh: max %d ulp, %d (%.2f%%) bit-identical", maxL, exactL, 100*float64(exactL)/float64(total))
+	tanhStats.report(t, total)
+	logCoshStats.report(t, total)
+}
+
+// ulpStats accumulates the asm-vs-Go comparison for one output across the full
+// domain sweep, failing the moment any element exceeds its tolerance.
+type ulpStats struct {
+	name  string
+	tol   int64
+	worst int64
+	exact uint64
+}
+
+func (s *ulpStats) observe(tb testing.TB, x, got, want float32) {
+	tb.Helper()
+
+	if math.Float32bits(got) == math.Float32bits(want) {
+		s.exact++
+
+		return
+	}
+
+	d := ulpDiff32(got, want)
+	if d > s.tol {
+		tb.Fatalf("%s(%v): asm %v, go %v, %d ulp apart (tol %d)", s.name, x, got, want, d, s.tol)
+	}
+
+	s.worst = max(s.worst, d)
+}
+
+func (s *ulpStats) report(tb testing.TB, total uint64) {
+	tb.Helper()
+
+	tb.Logf("  %-8s max %d ulp, %d (%.2f%%) bit-identical",
+		s.name+":", s.worst, s.exact, 100*float64(s.exact)/float64(total))
 }

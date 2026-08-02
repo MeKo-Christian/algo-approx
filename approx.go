@@ -2,28 +2,6 @@ package approx
 
 import iapprox "github.com/cwbudde/algo-approx/internal/approx"
 
-// FastSqrt returns an approximate square root using the default precision.
-func FastSqrt[T Float](x T) T { return FastSqrtPrec(x, PrecisionAuto) }
-
-// FastSqrtPrec returns an approximate square root using the requested precision.
-func FastSqrtPrec[T Float](x T, prec Precision) T {
-	return iapprox.Sqrt(x, iapprox.Precision(normalizePrecision(prec)))
-}
-
-func FastSqrt32(x float32) float32 { return FastSqrt[float32](x) }
-func FastSqrt64(x float64) float64 { return FastSqrt[float64](x) }
-
-// FastInvSqrt returns an approximate inverse square root using the default precision.
-func FastInvSqrt[T Float](x T) T { return FastInvSqrtPrec(x, PrecisionAuto) }
-
-// FastInvSqrtPrec returns an approximate inverse square root using the requested precision.
-func FastInvSqrtPrec[T Float](x T, prec Precision) T {
-	return iapprox.InvSqrt(x, iapprox.Precision(normalizePrecision(prec)))
-}
-
-func FastInvSqrt32(x float32) float32 { return FastInvSqrt[float32](x) }
-func FastInvSqrt64(x float64) float64 { return FastInvSqrt[float64](x) }
-
 // FastLog returns an approximate natural logarithm ln(x) using the default precision.
 func FastLog[T Float](x T) T { return FastLogPrec(x, PrecisionAuto) }
 
@@ -87,27 +65,6 @@ func FastLogCoshPrec[T Float](x T, prec Precision) T {
 
 func FastLogCosh32(x float32) float32 { return FastLogCosh[float32](x) }
 func FastLogCosh64(x float64) float64 { return FastLogCosh[float64](x) }
-
-// FastRecip returns an approximate 1/x using the default precision.
-func FastRecip[T Float](x T) T { return FastRecipPrec(x, PrecisionAuto) }
-
-// FastRecipPrec returns an approximate 1/x using the requested precision.
-//
-// Precision selects the Newton-Raphson step count on top of a bit-trick seed:
-// PrecisionFast is one step (~1.7e-8 relative), PrecisionBalanced two
-// (~3e-16, full float64 in practice) and PrecisionHigh three (<=1 ulp).
-//
-// Whether this beats writing 1/x depends entirely on the caller. A plain
-// divide is a single DIVSD on amd64 with ~13 cycle latency but good
-// throughput, so FastRecip loses in a latency-bound scalar chain and can win
-// only when several independent reciprocals are in flight. See README.md for
-// both measurements.
-func FastRecipPrec[T Float](x T, prec Precision) T {
-	return iapprox.Recip(x, iapprox.Precision(normalizePrecision(prec)))
-}
-
-func FastRecip32(x float32) float32 { return FastRecip[float32](x) }
-func FastRecip64(x float64) float64 { return FastRecip[float64](x) }
 
 // FastSin returns an approximate sine using the default precision.
 func FastSin[T Float](x T) T { return FastSinPrec(x, PrecisionAuto) }
