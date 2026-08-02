@@ -5,11 +5,14 @@ Fast, allocation-free mathematical approximations for Go.
 ## Read this before reaching for a `Fast*` function
 
 **The scalar functions are roughly break-even with `math`. The batch functions
-are where this library wins, and they win by about 11×.**
+are where this library wins — by about 11× on amd64 and 3× on arm64.**
 
 If you have a slice of `float32` to transform, use `FastExpBatch32` or
-`FastTanhLogCoshBatch32`. They run a hand-written AVX2+FMA kernel where the CPU
-has it, and they are ~11× faster per element than a scalar loop. `FastExpBatch32`
+`FastTanhLogCoshBatch32`. They run a hand-written vector kernel — AVX2+FMA on
+amd64, NEON on arm64 — and are ~11× faster per element than a scalar loop on
+amd64, ~3× on arm64, where the vectors are four lanes wide rather than eight and
+the pure-Go baseline they are measured against is itself faster because the
+compiler contracts multiply-adds there. `FastExpBatch32`
 is also far more accurate than `FastExp32` (1 ulp against 38) — but that is an
 `exp` result and does not generalise: batch `tanh` ties the scalar path and batch
 `log(cosh)` is slightly worse. Choose the batch path for throughput, and check
@@ -40,7 +43,8 @@ and marginal at `PrecisionFast`. See the tables below.
 
 A **batch (slice) API** is public as of this release: `FastExpBatch32/64` and
 `FastTanhLogCoshBatch32/64`. The float32 pair dispatches to an AVX2+FMA kernel
-where the CPU has both features and to a float32-native pure-Go kernel
+where the CPU has both features, to a NEON kernel on arm64, and to a
+float32-native pure-Go kernel
 otherwise; the float64 pair is a scalar loop, bit-identical to the scalar
 entry points, with the fused hyperbolic one sharing its `exp(-2|x|)` between
 both outputs. Batch `log`, `sin` and the rest do not exist yet.
@@ -81,7 +85,8 @@ func main() {
 src := make([]float32, 4096)
 dst := make([]float32, 4096)
 
-// SIMD where the CPU has AVX2+FMA, a float32-native Go kernel otherwise.
+// SIMD where the CPU has AVX2+FMA, NEON on arm64, a float32-native Go
+// kernel otherwise.
 approx.FastExpBatch32(dst, src)
 
 // In-place is supported.
@@ -107,7 +112,8 @@ Rules, identical for all four:
   written; a longer destination keeps its tail.
 - Each destination must be either **identical to `src`** (in-place, supported
   and tested) or **non-overlapping**. Partial overlap is undefined — the SIMD
-  kernels read a whole eight-element vector before writing any of it.
+  kernels read a whole vector (eight elements under AVX2, four under NEON)
+  before writing any of it.
 - The two destinations of a fused call must additionally **not overlap each
   other**, and in particular must not be the same slice. Both can be disjoint
   from `src` and still share storage, so the rule above does not cover it;
@@ -196,6 +202,37 @@ Three things are worth reading off these tables rather than skimming past:
   lane, so it evaluates both branches and blends. Benchmarked against an
   adversarial input where every element is past the branch point, N = 4096:
   11.47 µs against 11.58 µs for a ramp over [-10, 10]. Within 1 % either way.
+
+#### arm64 / NEON
+
+The same kernels on an Apple M5 (macOS 26.6, Go 1.26.5), `GOMAXPROCS=1`, eleven
+separate runs with the first discarded, CV ≤ 1 % on the vector arms. The machine
+is a laptop and idle-sleeps; the run was held awake with `caffeinate -dimsu`,
+without which the figures drift ~20 % slow.
+
+|    N | denominator      | pure-Go batch |          NEON | speedup |
+| ---: | ---------------- | ------------: | ------------: | ------: |
+| 1024 | `exp`            |         0.925 | **0.311** |   2.97× |
+| 4096 | `exp`            |         0.923 | **0.311** |   2.97× |
+| 1024 | fused `tanh`+`log(cosh)` | 3.722 | **1.062** |   3.51× |
+| 4096 | fused `tanh`+`log(cosh)` | 3.708 | **1.060** |   3.50× |
+
+Against the non-batch baselines at N = 4096: `exp` is **7.6×** a `math.Exp`
+loop (2.359 ns/element), and the fused pair is **6.1×** the scalar API
+(6.490 ns/element for both outputs).
+
+Read these next to the amd64 tables with the width in mind. NEON is four lanes
+where AVX2 is eight, so roughly half the headroom is simply not there, and the
+~3× is a larger fraction of its ceiling than 11.7× is of AVX2's. The remaining
+gap is the pure-Go denominator rather than the kernel: on arm64 the Go compiler
+contracts multiply-adds into `FMADD`, so the baseline it is measured against is
+already substantially better than the amd64 one, which cannot.
+
+The branch-mix result reproduces exactly: 4342.4 ns for the adversarial
+all-exp-branch input against 4342.6 ns for the ramp at N = 4096. That the two
+architectures agree to four significant figures on a property that is about the
+algorithm rather than the hardware is a good sign that the blend is doing what
+the design says it does.
 
 The float64 batch functions are scalar loops and get none of this. `FastExpBatch64`
 only amortises the call frame — do not expect a speedup. `FastTanhLogCoshBatch64`

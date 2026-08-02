@@ -159,6 +159,40 @@ truth than the pure-Go kernel on both outputs. So `FastExpBatch32` gives the
 same answer to within 1 ulp whether or not the host has AVX2, and neither
 answer is the worse one for having taken the vector path.
 
+### arm64 / NEON
+
+The NEON kernels agree with the pure-Go kernels far more closely than the AVX2
+ones do, and the reason is the same mechanism read the other way round: Go's
+arm64 backend **does** contract multiply-adds, so both sides evaluate the same
+fused expressions instead of one side rounding twice where the other rounds
+once.
+
+Measured on an Apple M5:
+
+| kernel                    |                 max drift vs Go |             bit-identical |
+| ------------------------- | ------------------------------: | ------------------------: |
+| `exp`, all 2³² patterns   |                           1 ulp |     all but 22 of 4.28e9  |
+| `tanh`, 3.4M-point sweep  |                           0 ulp |                     100 % |
+| `log(cosh)`, same sweep   |                           0 ulp |                     100 % |
+
+The `exp` figure is a genuine full-domain sweep. The 22 disagreements are ties
+in the range reduction: the Go kernel rounds `x*log2e` with the
+add-a-magic-constant trick, which on arm64 becomes a fused
+`fma(x, log2e, magic)` and so rounds the product exactly once, while the kernel
+uses `FRINTN` on the already-rounded product. At a tie the two land on opposite
+sides and the reduced argument differs by one, which costs the last bit.
+
+The `tanh` / `log(cosh)` figures come from a 3.4M-point sweep that walks the
+branch seam at |x| = 0.625 one float32 at a time — the region where every worst
+case on amd64 lives — not from the full 2³² domain. The exhaustive test exists
+(`TestHypNEONFullDomainDifferential`, opt-in via `ALGO_APPROX_EXHAUSTIVE=1`) but
+has not been run to completion on arm64 hardware, so treat the 100 % as "nothing
+found where the errors are" rather than as a proof over the whole domain.
+
+Getting that agreement required one deliberate departure from the AVX2 kernel
+rather than a faithful transliteration of it; see the note in
+`internal/simd/hyperbolic32_arm64.s` about where contraction differs.
+
 `FastLog32`'s sweep drops the band $|\ln x| < 1$. There the output passes
 through zero, where any nonzero absolute error is an unbounded ulp count: the
 full sweep reads 51138 ulp, all of it at $x \approx 1.0035$, and it measures
