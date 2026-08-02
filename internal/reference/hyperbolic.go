@@ -25,8 +25,3 @@ func LogCosh[T approx.Float](x T) T {
 
 	return T(a - math.Ln2 + math.Log1p(math.Exp(-2*a)))
 }
-
-// Recip is the reference reciprocal: a true hardware divide.
-func Recip[T approx.Float](x T) T {
-	return T(1 / float64(x))
-}

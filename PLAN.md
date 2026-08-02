@@ -81,6 +81,20 @@ algo-approx/
         └── test-lint.yaml # Linting checks
 ```
 
+> **This tree, and the Phase 1 sections below, are the original plan and are kept
+> as a record of it — they are no longer an accurate description of the
+> repository.** Two things have changed since:
+>
+> - `sqrt`, `invsqrt` and `recip` were **removed from the library** (§6.2). They
+>   were measured 6.9x / 4.3x / 9x slower than the hardware instructions they
+>   replace, and Go intrinsifies `math.sqrt` on every GOARCH it supports, so
+>   there is no target where they win. `internal/approx/{sqrt,invsqrt,recip}.go`,
+>   `internal/reference/sqrt.go` and `internal/approx/dispatch.go` are gone;
+>   `docs/removed-kernels.md` keeps the numerical analysis. §1.6.1 and §1.6.2
+>   below describe deleted code.
+> - `internal/simd/` holds float32-native batch kernels for `exp` and the fused
+>   `tanh`/`log(cosh)`, not the `sqrt` kernels sketched here (§6.0, §6.0.1).
+
 ---
 
 # Phase 1: Foundation & Core Math (MVP)
@@ -792,7 +806,7 @@ algo-approx/
 - [x] Property-based tests:
   - [x] root(x^n, n) ≈ x
   - [x] IntPower vs Power consistency for integer exponents
-  - [x] Power exponent laws: (a^b)^c = a^(b*c)
+  - [x] Power exponent laws: (a^b)^c = a^(b\*c)
   - [x] sqrt(x) = root(x, 2)
   - [x] x^(-n) = 1/(x^n)
 
@@ -816,20 +830,20 @@ A timeboxed spike asked whether hand-written Plan 9 assembly buys anything here.
 **scalar assembly, no; batch assembly, decisively yes.**
 
 Go assembly functions cannot be inlined, and this repo's core property is cross-module inlining
-(gated statically by `consumerbench/inline_test.go`). So scalar asm would *lose*. The win is
+(gated statically by `consumerbench/inline_test.go`). So scalar asm would _lose_. The win is
 only reachable through batch APIs, which did not exist.
 
 Measured on i7-1255U, `taskset -c 2` (P-core), `GOMAXPROCS=1`, medians of 10 runs,
 **ns per element**:
 
-| N | scalar API | pure-Go batch | AVX2 asm | AVX2 / batch-Go | AVX2 / scalar |
-|---:|---:|---:|---:|---:|---:|
-| 64 | 24.97 | 6.19 | **0.536** | 11.5x | 46.6x |
-| 256 | 24.62 | 6.56 | **0.563** | 11.6x | 43.7x |
-| 1024 | 25.38 | 6.35 | **0.520** | 12.2x | 48.8x |
-| 4096 | 24.41 | 6.07 | **0.520** | 11.7x | 46.9x |
-| 65536 | 24.40 | 6.00 | **0.507** | 11.8x | 48.2x |
-| 1048576 | 24.61 | 6.69 | **0.545** | 12.3x | 45.1x |
+|       N | scalar API | pure-Go batch |  AVX2 asm | AVX2 / batch-Go | AVX2 / scalar |
+| ------: | ---------: | ------------: | --------: | --------------: | ------------: |
+|      64 |      24.97 |          6.19 | **0.536** |           11.5x |         46.6x |
+|     256 |      24.62 |          6.56 | **0.563** |           11.6x |         43.7x |
+|    1024 |      25.38 |          6.35 | **0.520** |           12.2x |         48.8x |
+|    4096 |      24.41 |          6.07 | **0.520** |           11.7x |         46.9x |
+|   65536 |      24.40 |          6.00 | **0.507** |           11.8x |         48.2x |
+| 1048576 |      24.61 |          6.69 | **0.545** |           12.3x |         45.1x |
 
 The gate was "≥4x over a correctly-written pure-Go float32 batch baseline at N ≤ 4096". Cleared
 by roughly 3x margin.
@@ -848,7 +862,49 @@ CV was 14–32% (machine shared with other users' jobs), but the effect is an or
 larger than the noise. Benchmarks verified not to be dead code: all outputs written,
 `exp(-10)=4.54e-5`, `exp(0)=1`, `exp(9.995)=21919`.
 
-Fused tanh+logCosh, **pure Go only so far** (no asm kernel yet): 2.6–3.2x over the scalar API.
+## 6.0.1 Fused tanh/log(cosh) AVX2 result (2026-08-02) — **GATE PASSED**
+
+This is the kernel the spike actually hinged on. `exp` is branch-free, so vectorising it only
+proved the pipeline (ABI0 frame, masked tail, dispatch, VEX purity). `tanh` has a data-dependent
+branch at |x| = 0.625, and a vector kernel cannot branch per lane — it must evaluate the
+rational core **and** the exponential form for every lane and blend. Whether the eight-fold
+width survives paying for both was the open question.
+
+Measured on the **quiet** Xeon Gold 5218 (2.30 GHz, Cascade Lake, 2 vCPU),
+`GOMAXPROCS=1 taskset -c 0`, 10 separate `-count=1` runs, benchstat, **CV ≤ 5%**:
+
+|       N | scalar API | pure-Go batch |     AVX2 asm | AVX2 / batch-Go | AVX2 / scalar |
+| ------: | ---------: | ------------: | -----------: | --------------: | ------------: |
+|      64 |   4.339 µs |      2.058 µs | **206.3 ns** |           9.98x |         21.0x |
+|     256 |   17.32 µs |      8.286 µs | **744.9 ns** |          11.12x |         23.3x |
+|    1024 |   68.75 µs |      32.86 µs | **2.900 µs** |          11.33x |         23.7x |
+|    4096 |   274.6 µs |      133.7 µs | **11.58 µs** |          11.55x |         23.7x |
+|   65536 |   4.421 ms |      2.142 ms | **185.4 µs** |          11.55x |         23.8x |
+| 1048576 |   70.23 ms |      34.73 ms | **2.956 ms** |          11.75x |         23.8x |
+
+**The branchy-blend cost is real but distribution-independent.** Benchmarked against an
+adversarial input where every element is past the branch point, so a branchy scalar version
+would take the expensive exponential path for all of them:
+
+| distribution              | AVX2 (N=4096) | pure-Go (N=4096) |
+| ------------------------- | ------------: | ---------------: |
+| ramp over [-10, 10]       |      11.58 µs |         133.7 µs |
+| all past the branch point |      11.47 µs |         132.2 µs |
+
+Within 1% either way. Both kernels are branchless by construction, so neither gains from a
+favourable branch mix — which is what makes the pure-Go baseline a fair denominator here rather
+than a flattering one.
+
+Throughput is **flat at ~1.32 GiB/s from N=256 to N=1M**, so this kernel is compute-bound over
+the whole measured range and the predicted large-N bandwidth collapse does not occur. Counting
+all three slices it moves ~4.3 GB/s of real traffic, far under DRAM.
+
+**Where the remaining time goes.** At 2.82 ns/element on a 2.30 GHz part the kernel spends
+~6.5 cycles/element on ~8.6 instructions/element, i.e. ~1.3 IPC — low for straight-line vector
+code. The likely reason is the three `VDIVPS` per block (the rational core's `num/den`, tanh's
+`2u/(1+u)`, and log1p's `u/(2+u)`); the divider does not pipeline like the rest of the kernel,
+and on Cascade Lake three 256-bit divides per eight elements plausibly accounts for a large
+share of those cycles. This is an inference from instruction tables, **not measured** — see 6.2.
 
 ## 6.1 Delivered
 
@@ -862,22 +918,56 @@ Fused tanh+logCosh, **pure Go only so far** (no asm kernel yet): 2.6–3.2x over
 - [x] `HasFMA` added to `internal/cpu` (FMA is a separate CPUID bit; VMs can mask it → SIGILL)
 - [x] float32 ulp accuracy harness (the suite previously had **zero** float32 coverage)
 - [x] Fused `TanhLogCoshFloat32` in pure Go, sharing `u = exp(-2|x|)` between both outputs
+- [x] `internal/simd/hyperbolic32_amd64.s` — AVX2+FMA fused tanh/log(cosh), three slices
+      (`$0-73`), both branches evaluated and blended with `VBLENDVPS`, masked tail for both
+      destinations
+- [x] `internal/simd/exp32_amd64.h` — the exp constants, tail mask table and `EXPBODY` extracted
+      into a header both kernels include, so the shared exponential has exactly one definition.
+      `EXPBODY` was reworked to hold only its two clamp constants in registers and read the rest
+      from RODATA, which is what leaves the fused kernel enough registers to work in.
+- [x] `TestDispatchSelectsAVX2OnCapableHost` — asserts the dispatch flag really resolved to the
+      assembly, so the suite cannot pass green while the kernel never executes
 
-**Accuracy**: asm vs pure-Go verified over **all 2³² float32 bit patterns** — max **1 ulp**,
-99.95% bit-identical. The residual is FMA contraction (asm fuses; Go's amd64 backend never
-does). exp is 1 ulp vs a float64 reference across the whole domain; tanh 1 ulp; logCosh 2 ulp
-(4 at the branch seam).
+**Accuracy**: every assembly kernel is verified against its pure-Go twin over **all 2³² float32
+bit patterns**, i.e. 4 278 190 082 non-NaN inputs:
+
+| kernel    | max drift vs Go | bit-identical |
+| --------- | --------------: | ------------: |
+| `exp`     |           1 ulp |        99.95% |
+| `tanh`    |           2 ulp |        99.98% |
+| `logCosh` |           4 ulp |        99.99% |
+
+The residual is FMA contraction (asm fuses; Go's amd64 backend never does). Against a float64
+reference, exp is 1 ulp across the whole domain, tanh 1 ulp, logCosh 2 ulp (4 at the branch
+seam) — and at the seam, where the worst cases live, the **assembly is fractionally closer to
+the truth than the pure-Go kernel on both outputs**, so the drift is the two implementations
+rounding to opposite sides of a genuine cancellation rather than the vector kernel losing
+precision.
 
 ## 6.2 Remaining
 
-- [ ] AVX2 fused tanh/logCosh kernel — **this is the informative one.** exp is branch-free and
-      only proved the asm pipeline (ABI, tail, dispatch, VEX purity). tanh must evaluate the
-      rational core *and* the exp branch for all lanes and blend; that cost is still unmeasured.
-- [ ] Public batch API design/naming (deliberately deferred out of the spike)
-- [ ] Re-measure on an idle machine to tighten CV
-- [ ] **Do not** pursue `sqrt`/`invsqrt`/`recip`: measured 6.9x / 4.3x / 9x *slower* than the
-      hardware instructions they replace. `VSQRTPS`/`VDIVPS` vectorize too, so SIMD cannot
-      rescue them. Reconsider whether they should ship at all.
+- [x] AVX2 fused tanh/logCosh kernel — done, see 6.0.1. The branchy-blend cost is real and
+      distribution-independent, and the kernel still clears the gate by ~2.9x.
+- [x] Re-measure on an idle machine — done on the Xeon, CV ≤ 5% against 14–32% locally.
+- [x] `sqrt`/`invsqrt`/`recip` **removed from the library**. They measured 6.9x / 4.3x / 9x
+      _slower_ than the hardware instructions they replace, and the README's stated
+      justification ("for targets without a hardware square root") does not survive checking:
+      `cmd/compile/internal/ssagen/intrinsics.go` intrinsifies `math.sqrt` to `ssa.OpSqrt` on
+      I386, AMD64, ARM, ARM64, Loong64, MIPS, MIPS64, PPC64, RISCV64, S390X and Wasm — every
+      GOARCH Go supports. There is no target where the approximation wins.
+- [ ] Public batch API design/naming — still deferred. `internal/simd` stays internal until
+      then.
+- [ ] **Replace the three `VDIVPS` with `VRCPPS` + two Newton-Raphson steps.** This is the
+      single largest remaining win and the one concrete follow-up the measurements point at.
+      The reciprocal sequence was probed on this hardware and lands within **1 ulp**, so it is
+      numerically viable; it costs five pipelined instructions against one non-pipelined divide.
+      Before doing it, _measure_ rather than assume — profile the kernel to confirm the divider
+      really is the limiter (6.0.1 infers it from ~1.3 IPC and instruction tables, which is not
+      the same as having measured it). If it holds, expect a meaningful fraction of the current
+      2.82 ns/element back.
+- [ ] Consider the same treatment for `exp`'s sibling kernels on ARM64 (Phase 7); note the
+      Cascade Lake divider is slower than Alder Lake's, so the payoff above is
+      microarchitecture-dependent and should be re-measured per target.
 
 ---
 

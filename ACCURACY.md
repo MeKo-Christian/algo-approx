@@ -18,20 +18,17 @@ Metrics are produced by the helper in `internal/reference/accuracy.go`:
   - `RMSError`: root mean square error over samples
 
 Read the two error columns together. `MaxRelError` is the meaningful one for
-`sqrt`, `invsqrt`, `exp` and `recip`, whose outputs span many decades;
-`MaxAbsError` is the meaningful one for `log`, `tanh` and `logcosh`, whose
-outputs do not. Quoting the wrong one produces misleading numbers: `FastSqrt`'s
-1.1 absolute error is entirely the top of a $[10^{-12}, 10^{12}]$ sweep, and
-`FastRecip`'s $10^{134}$ is the same artefact at 15 correct digits.
+`exp`, whose outputs span many decades; `MaxAbsError` is the meaningful one for
+`log`, `tanh` and `logcosh`, whose outputs do not. Quoting the wrong one
+produces misleading numbers: an absolute error read off the top of a
+many-decade sweep says nothing about the digits that are actually correct.
 
 ### Sample sets
 
-- **sqrt / invsqrt**: 20001 log-spaced samples in $[10^{-12}, 10^{12}]$
 - **log**: 20001 log-spaced samples in $[10^{-12}, 10^{6}]$
 - **exp**: 20001 linear samples in $[-10, 10]$
 - **tanh**: 20001 linear samples in $[-20, 20]$
 - **logcosh**: 20001 linear samples in $[-12, 12]$ (the consumer's domain)
-- **recip**: 20001 log-spaced samples in $[10^{-150}, 10^{150}]$
 
 ## Results (2026-08-02)
 
@@ -41,12 +38,6 @@ outputs do not. Quoting the wrong one produces misleading numbers: `FastSqrt`'s
 
 | Function       | Precision | MaxRelError | MaxAbsError |  RMSError |
 | -------------- | --------: | ----------: | ----------: | --------: |
-| `FastSqrt`     |      Fast |   1.734e-03 |   1.277e+03 | 7.913e+01 |
-| `FastSqrt`     |  Balanced |   1.501e-06 |   1.096e+00 | 4.984e-02 |
-| `FastSqrt`     |      High |   1.127e-12 |   8.112e-07 | 2.686e-08 |
-| `FastInvSqrt`  |      Fast |   1.751e-03 |   1.324e+03 | 1.416e+02 |
-| `FastInvSqrt`  |  Balanced |   4.597e-06 |   3.179e+00 | 3.060e-01 |
-| `FastInvSqrt`  |      High |   3.170e-11 |   2.072e-05 | 1.674e-06 |
 | `FastLog` (ln) |      Fast |   1.283e+00 |   1.789e-03 | 5.459e-04 |
 | `FastLog` (ln) |  Balanced |   8.841e-03 |   1.242e-05 | 2.901e-06 |
 | `FastLog` (ln) |      High |   7.544e-05 |   1.068e-07 | 2.099e-08 |
@@ -59,17 +50,10 @@ outputs do not. Quoting the wrong one produces misleading numbers: `FastSqrt`'s
 | `FastLogCosh`  |      Fast |   9.445e-05 |   1.731e-05 | 1.277e-06 |
 | `FastLogCosh`  |  Balanced |   3.138e-09 |   1.054e-09 | 4.196e-11 |
 | `FastLogCosh`  |      High |   6.553e-10 |   1.201e-10 | 4.192e-12 |
-| `FastRecip`    |      Fast |   1.661e-08 |           — |         — |
-| `FastRecip`    |  Balanced |   4.804e-16 |           — |         — |
-| `FastRecip`    |      High |   2.220e-16 |           — |         — |
 
 `FastLog`'s `MaxRelError` looks alarming because the sample set straddles
 `x = 1`, where `ln(x)` passes through zero and any nonzero absolute error is an
 unbounded relative error. The absolute column is the one to read.
-
-`FastRecip`'s absolute error column is omitted for the mirror-image reason:
-over a $10^{300}$ dynamic range it measures nothing but the top of the sweep.
-`PrecisionHigh` is one ulp.
 
 `FastLogCosh` at `PrecisionHigh` is bounded by its small-argument branch, not
 by its exponential branch: the `log(cosh)` series in $z = x^2$ only gains a
@@ -119,13 +103,12 @@ the crossing rather than the kernel. That band is gated on absolute error
 instead, at a measured 1.242e-05 over $[10^{-1}, 10^{1}]$ — the same
 `MaxRelError`-versus-`MaxAbsError` caveat that applies to `FastLog` in float64.
 
-## The `FastTanh` / `FastLogCosh` / `FastRecip` guarantees
+## The `FastTanh` / `FastLogCosh` guarantees
 
 Beyond the error table these carry structural guarantees that hold at every
 precision, and are covered by tests rather than by measurement:
 
-- `FastTanh(-x)` is the **bit-for-bit** negation of `FastTanh(x)`, and so is
-  `FastRecip(-x)` of `FastRecip(x)`.
+- `FastTanh(-x)` is the **bit-for-bit** negation of `FastTanh(x)`.
 - `FastTanh(x)` is **exactly** `±1` for `|x| >= 19.0625`, which is where
   `math.Tanh` saturates too.
 - `FastLogCosh` is exactly even, and never returns an infinity for a finite

@@ -16,44 +16,6 @@ func TestProperty_ExpLog_RoundTrip_Float64(t *testing.T) {
 	}
 }
 
-func TestProperty_Sqrt_Square_Float64(t *testing.T) {
-	t.Parallel()
-	// For x>=0: sqrt(x)^2 ≈ x
-	for _, x := range []float64{0, 1e-12, 1e-6, 0.1, 1, 2, 10, 1e6, 1e12} {
-		y := FastSqrt(x)
-
-		got := float64(y * y)
-		if !closeRel(got, x, 2e-2) {
-			t.Fatalf("sqrt(%g)^2 got %g", x, got)
-		}
-	}
-}
-
-func TestProperty_InvSqrt_Sqrt_Product_Float64(t *testing.T) {
-	t.Parallel()
-	// For x>0: invsqrt(x)*sqrt(x) ≈ 1
-	for _, x := range []float64{1e-12, 1e-6, 0.1, 1, 2, 10, 1e6, 1e12} {
-		p := float64(FastInvSqrt(x) * FastSqrt(x))
-		if math.Abs(p-1) > 2e-2 {
-			t.Fatalf("invsqrt(x)*sqrt(x) for x=%g got %g", x, p)
-		}
-	}
-}
-
-func TestProperty_Monotonicity_Sqrt_Float64(t *testing.T) {
-	t.Parallel()
-
-	prev := FastSqrt(0.0)
-	for _, x := range []float64{1e-12, 1e-6, 1e-3, 0.1, 1, 2, 10, 1e3, 1e6} {
-		cur := FastSqrt(x)
-		if cur < prev {
-			t.Fatalf("sqrt not monotone: sqrt(%g)=%g < prev=%g", x, cur, prev)
-		}
-
-		prev = cur
-	}
-}
-
 func closeRel(got, ref, tol float64) bool {
 	dval := math.Abs(got - ref)
 
@@ -396,7 +358,7 @@ func TestRootSquareIdentity(t *testing.T) {
 	tests := []float64{1.0, 2.0, 4.0, 9.0, 16.0, 100.0}
 
 	for _, x := range tests {
-		sqrtVal := FastSqrt(x)
+		sqrtVal := math.Sqrt(x)
 		rootVal := FastRoot(x, 2)
 
 		diff := math.Abs(sqrtVal - rootVal)
@@ -499,39 +461,6 @@ func TestProperty_LogCosh_Asymptote_Float64(t *testing.T) {
 		want := x - math.Ln2
 		if math.Abs(got-want) > 1e-12*math.Max(1, x) {
 			t.Fatalf("logCosh(%g) = %g, want ~%g", x, got, want)
-		}
-	}
-}
-
-// TestProperty_Recip_RoundTrip_Float64 checks x * (1/x) ~ 1 across the whole
-// normal exponent range, including the ends where a naive exponent negation
-// would fall off.
-func TestProperty_Recip_RoundTrip_Float64(t *testing.T) {
-	t.Parallel()
-
-	for i := range 20001 {
-		x := math.Pow(10, -300+600*float64(i)/20000.0)
-		if i%2 == 1 {
-			x = -x
-		}
-
-		product := x * FastRecipPrec(x, PrecisionHigh)
-		if math.Abs(product-1) > 4e-16 {
-			t.Fatalf("x*(1/x) for x=%g got %g", x, product)
-		}
-	}
-}
-
-// TestProperty_Recip_ExactlyOdd_Float64 mirrors the tanh symmetry guarantee.
-func TestProperty_Recip_ExactlyOdd_Float64(t *testing.T) {
-	t.Parallel()
-
-	for _, prec := range []Precision{PrecisionFast, PrecisionBalanced, PrecisionHigh} {
-		for i := range 5001 {
-			x := math.Pow(10, -300+600*float64(i)/5000.0)
-			if FastRecipPrec(-x, prec) != -FastRecipPrec(x, prec) {
-				t.Fatalf("recip not exactly odd at x=%g prec=%v", x, prec)
-			}
 		}
 	}
 }

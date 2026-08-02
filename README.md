@@ -4,18 +4,13 @@ Fast, allocation-free mathematical approximations for Go.
 
 ## Read this before reaching for a `Fast*` function
 
-> **`FastSqrt` and `FastInvSqrt` are slower than `math.Sqrt` on every
-> mainstream target, by a factor of 4–6.** This is not a tuning problem and it
-> will not be fixed. Go lowers `math.Sqrt` to a single `SQRTSD` instruction on
-> amd64 and `FSQRT` on arm64 — a hardware square root that no Newton iteration
-> written in Go can beat. Use `math.Sqrt` and `1/math.Sqrt(x)`. The `Fast*`
-> versions exist for targets without a hardware square root and for
-> `PrecisionFast`, where a deliberately sloppy answer is acceptable.
-
-> **`FastRecip` is slower than writing `1/x`, in both a dependent chain and an
-> independent-throughput loop.** `DIVSD` has long latency but good throughput,
-> and a bit-trick seed plus Newton-Raphson beats neither. It is published with
-> its measurements so the question does not have to be asked again.
+> **`FastSqrt`, `FastInvSqrt` and `FastRecip` have been removed.** They were
+> 4–19× slower than the hardware they replaced: Go lowers `math.Sqrt` to a
+> single `SQRTSD` on amd64 and `FSQRT` on arm64 — and intrinsifies it on every
+> `GOARCH` it supports — while `1/x` lowers to `DIVSD`. No Newton iteration
+> written in Go beats either, on any target. Use `math.Sqrt`, `1/math.Sqrt(x)`
+> and `1/x`. See [docs/removed-kernels.md](docs/removed-kernels.md) for the
+> measurements and the seed-convergence analysis that came out of the attempt.
 
 > **`FastTanh` is ~1.1× slower than `math.Tanh`.** It is worth using for its
 > guarantees — bit-exact odd symmetry, exact saturation, and the derivative
@@ -27,9 +22,8 @@ and marginal at `PrecisionFast`. See the tables below.
 
 ## Status
 
-`sqrt`, `invsqrt`, `log` (ln), `exp`, the trig/arctrig family, `tanh`,
-`logcosh` and `recip`, all with `float32`/`float64` generics and a `Precision`
-knob. Every function is allocation-free (enforced by `approx_alloc_test.go`).
+`log` (ln), `exp`, the trig/arctrig family, `tanh` and `logcosh`, all with
+`float32`/`float64` generics and a `Precision` knob. Every function is allocation-free (enforced by `approx_alloc_test.go`).
 
 ## Install
 
@@ -85,30 +79,21 @@ just bench-consumer    # the same, from consumerbench/ — a separate module
   The previous harness recomputed its input inside the loop
   (`float64((i%1000)+1) * 1.001`) for about 1.2 ns per iteration, which was
   added to _both_ sides of every comparison and pulled every published ratio
-  towards 1.0 — hardest on the cheapest operations. That is why the old table
-  claimed `math.Sqrt` cost 1.94 ns when `SQRTSD` is about 0.3 ns amortised.
+  towards 1.0 — hardest on the cheapest operations. That is what made the
+  hardware-backed `math` entries look several times more expensive than they
+  are.
 
 ### Measured from inside the package
 
-| Operation                 | approx ns | math ns | approx vs math |
-| ------------------------- | --------: | ------: | -------------: |
-| `Sqrt`                    |      7.20 |    0.85 |   8.48× slower |
-| `InvSqrt`                 |      7.76 |    1.77 |   4.38× slower |
-| `Log` (ln)                |      4.08 |    4.74 |   1.16× faster |
-| `Exp`                     |      4.12 |    4.00 |   1.03× slower |
-| `Tanh`                    |      6.99 |    6.08 |   1.15× slower |
-| `LogCosh`                 |      9.95 |   17.42 |   1.75× faster |
-| `Recip` (dependent chain) |     16.71 |    3.24 |   5.15× slower |
-| `Recip` (throughput, 4×)  |      7.36 |    0.42 |  17.56× slower |
+| Operation  | approx ns | math ns | approx vs math |
+| ---------- | --------: | ------: | -------------: |
+| `Log` (ln) |      4.08 |    4.74 |   1.16× faster |
+| `Exp`      |      4.12 |    4.00 |   1.03× slower |
+| `Tanh`     |      6.99 |    6.08 |   1.15× slower |
+| `LogCosh`  |      9.95 |   17.42 |   1.75× faster |
 
-`math` here means `math.Sqrt`, `1/math.Sqrt(x)`, `math.Log`, `math.Exp`,
-`math.Tanh`, `math.Log(math.Cosh(x))` and `1/x` respectively.
-
-For comparison, the figures this table previously published were 11.09 / 12.83
-/ 6.398 / 7.269 ns for approx and 1.942 / 5.887 / 10.83 / 13.56 ns for math —
-about 1.2 ns of harness overhead on every entry, and a `math` column that does
-not reproduce at all. The `InvSqrt`, `Log` and `Exp` ratios it quoted (2.18×
-slower, 1.69× faster, 1.87× faster) were all wrong.
+`math` here means `math.Log`, `math.Exp`, `math.Tanh` and
+`math.Log(math.Cosh(x))` respectively.
 
 ### Precision tiers
 
@@ -146,7 +131,6 @@ itself does not win.** Same method, same CPU:
 | `FastExp64`                    |      4.51 |    4.53 |     break-even |
 | `FastTanh64`                   |      7.49 |    6.73 |   1.11× slower |
 | `FastLogCosh64`                |     10.34 |   17.59 |   1.70× faster |
-| `FastRecip64` (throughput, 4×) |      8.37 |    0.44 |  18.93× slower |
 
 The generic and the concrete entry points now cost the same, which was not
 true before: see the note below.
@@ -174,8 +158,7 @@ The shim is small enough to inline across packages, so a consumer lands on a
 direct call to the kernel. After the change, the generic and concrete entry
 points are indistinguishable (3.74 vs 3.78 ns) and both are 1.3× faster than
 `math.Log` from outside the module — the same ratio the in-package benchmark
-reports. `Log`, `Exp`, `Tanh`, `LogCosh` and `Recip` all use this structure;
-`Sqrt` and `InvSqrt` are genuinely generic and were left alone.
+reports. `Log`, `Exp`, `Tanh` and `LogCosh` all use this structure.
 
 For the record, the other suspect was ruled out by measurement, not argument.
 The runtime `switch prec` inside each kernel costs nothing:
@@ -204,8 +187,8 @@ it never forms `cosh` at all.
 ## Accuracy
 
 See [ACCURACY.md](ACCURACY.md) for measured error metrics on representative
-ranges, and for the guarantees `FastTanh`, `FastLogCosh` and `FastRecip` hold
-exactly rather than approximately.
+ranges, and for the guarantees `FastTanh` and `FastLogCosh` hold exactly rather
+than approximately.
 
 Two notes worth reading there:
 

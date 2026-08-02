@@ -136,29 +136,3 @@ func BenchmarkNaiveLogCosh(b *testing.B) {
 
 	sink = acc
 }
-
-func BenchmarkFastRecip64_Throughput(b *testing.B) {
-	var a0, a1, a2, a3 float64
-
-	for i := 0; i < b.N; i += 4 {
-		a0 += approx.FastRecip64(positive[i&tableMask])
-		a1 += approx.FastRecip64(positive[(i+1)&tableMask])
-		a2 += approx.FastRecip64(positive[(i+2)&tableMask])
-		a3 += approx.FastRecip64(positive[(i+3)&tableMask])
-	}
-
-	sink = a0 + a1 + a2 + a3
-}
-
-func BenchmarkDivRecip_Throughput(b *testing.B) {
-	var a0, a1, a2, a3 float64
-
-	for i := 0; i < b.N; i += 4 {
-		a0 += 1.0 / positive[i&tableMask]
-		a1 += 1.0 / positive[(i+1)&tableMask]
-		a2 += 1.0 / positive[(i+2)&tableMask]
-		a3 += 1.0 / positive[(i+3)&tableMask]
-	}
-
-	sink = a0 + a1 + a2 + a3
-}

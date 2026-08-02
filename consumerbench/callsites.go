@@ -21,7 +21,6 @@ func CallFastLog(x float64) float64     { return approx.FastLog(x) }
 func CallFastExp(x float64) float64     { return approx.FastExp(x) }
 func CallFastTanh(x float64) float64    { return approx.FastTanh(x) }
 func CallFastLogCosh(x float64) float64 { return approx.FastLogCosh(x) }
-func CallFastRecip(x float64) float64   { return approx.FastRecip(x) }
 
 // The concrete float64 entry points.
 
@@ -29,4 +28,3 @@ func CallFastLog64(x float64) float64     { return approx.FastLog64(x) }
 func CallFastExp64(x float64) float64     { return approx.FastExp64(x) }
 func CallFastTanh64(x float64) float64    { return approx.FastTanh64(x) }
 func CallFastLogCosh64(x float64) float64 { return approx.FastLogCosh64(x) }
-func CallFastRecip64(x float64) float64   { return approx.FastRecip64(x) }
