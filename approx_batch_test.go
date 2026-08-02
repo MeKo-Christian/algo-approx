@@ -28,10 +28,14 @@ import (
 
 // batchRamp returns n samples spread over [lo, hi], deliberately including the
 // branch point at 0.625 and its negative.
+// The divisor is max(n-1, 1) rather than n-1 so that n == 1 yields lo instead
+// of NaN. TestBatchTailLengths sweeps every length from 0 to 32, and at n == 1
+// a 0/0 divisor would have turned a tail-length case into a NaN-propagation
+// case without anything failing to say so.
 func batchRamp(n int, lo, hi float64) []float64 {
 	out := make([]float64, n)
 	for i := range n {
-		out[i] = lo + (hi-lo)*float64(i)/float64(n-1)
+		out[i] = lo + (hi-lo)*float64(i)/float64(max(n-1, 1))
 	}
 
 	return out
@@ -40,7 +44,7 @@ func batchRamp(n int, lo, hi float64) []float64 {
 func batchRamp32(n int, lo, hi float32) []float32 {
 	out := make([]float32, n)
 	for i := range n {
-		out[i] = lo + (hi-lo)*float32(i)/float32(n-1)
+		out[i] = lo + (hi-lo)*float32(i)/float32(max(n-1, 1))
 	}
 
 	return out
@@ -421,10 +425,12 @@ func TestBatchLongDestinationLeavesTailUntouched(t *testing.T) {
 		src := batchRamp(n, -5, 5)
 		dst := make([]float64, n+extra)
 		tanh := make([]float64, n+extra)
+		logcosh := make([]float64, n+extra)
 
 		for i := range dst {
 			dst[i] = sentinel
 			tanh[i] = sentinel
+			logcosh[i] = sentinel
 		}
 
 		approx.FastExpBatch64(dst, src)
@@ -437,8 +443,12 @@ func TestBatchLongDestinationLeavesTailUntouched(t *testing.T) {
 
 		requireSame(t, "FastExpBatch64 head", dst[:n], want)
 
-		approx.FastTanhLogCoshBatch64(tanh, dst, src)
+		// Both destinations get their own buffer and both tails are checked:
+		// the contract is per-destination, so asserting only dstTanh would let
+		// a kernel that overran dstLogCosh through.
+		approx.FastTanhLogCoshBatch64(tanh, logcosh, src)
 		requireTail(t, "FastTanhLogCoshBatch64/dstTanh", tanh, n, sentinel)
+		requireTail(t, "FastTanhLogCoshBatch64/dstLogCosh", logcosh, n, sentinel)
 	})
 
 	t.Run("float32", func(t *testing.T) {
@@ -447,17 +457,23 @@ func TestBatchLongDestinationLeavesTailUntouched(t *testing.T) {
 		src := batchRamp32(n, -5, 5)
 		dst := make([]float32, n+extra)
 		tanh := make([]float32, n+extra)
+		logcosh := make([]float32, n+extra)
 
 		for i := range dst {
 			dst[i] = sentinel
 			tanh[i] = sentinel
+			logcosh[i] = sentinel
 		}
 
 		approx.FastExpBatch32(dst, src)
 		requireTail(t, "FastExpBatch32", dst, n, sentinel)
 
-		approx.FastTanhLogCoshBatch32(tanh, dst, src)
+		// See the float64 case: both tails are checked, because the masked
+		// tail store in the AVX2 kernel is per-destination and a bug in one
+		// would not show up in the other.
+		approx.FastTanhLogCoshBatch32(tanh, logcosh, src)
 		requireTail(t, "FastTanhLogCoshBatch32/dstTanh", tanh, n, sentinel)
+		requireTail(t, "FastTanhLogCoshBatch32/dstLogCosh", logcosh, n, sentinel)
 	})
 }
 

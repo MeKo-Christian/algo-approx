@@ -36,6 +36,13 @@
 // values. Passing a partially overlapping pair is a programming error, not a
 // supported mode.
 //
+// TanhLogCoshFloat32 additionally requires its two destinations not to overlap
+// each other, including the degenerate case of being the same slice. The rule
+// above does not cover it: both destinations can be disjoint from src and still
+// share storage, in which case the fused loop writes tanh and then overwrites
+// it with log(cosh). Passing one slice for both is the easy version of this
+// mistake and returns a plausible-looking buffer holding only log(cosh).
+//
 // # Accuracy
 //
 // Measured against float64 references rounded once to float32, over the whole

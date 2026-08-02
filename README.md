@@ -9,10 +9,13 @@ are where this library wins, and they win by about 11×.**
 
 If you have a slice of `float32` to transform, use `FastExpBatch32` or
 `FastTanhLogCoshBatch32`. They run a hand-written AVX2+FMA kernel where the CPU
-has it, and they are both ~11× faster per element than a scalar loop **and**
-more accurate than the scalar `*32` entry points (1 ulp against 38). If you are
-calling a `Fast*` function one value at a time, read the rest of this section
-first — the case for the scalar API rests on its guarantees, not on its speed.
+has it, and they are ~11× faster per element than a scalar loop. `FastExpBatch32`
+is also far more accurate than `FastExp32` (1 ulp against 38) — but that is an
+`exp` result and does not generalise: batch `tanh` ties the scalar path and batch
+`log(cosh)` is slightly worse. Choose the batch path for throughput, and check
+[ACCURACY.md](ACCURACY.md) before choosing it for accuracy. If you are calling a
+`Fast*` function one value at a time, read the rest of this section first — the
+case for the scalar API rests on its guarantees, not on its speed.
 
 > **`FastSqrt`, `FastInvSqrt` and `FastRecip` have been removed.** They were
 > 4–19× slower than the hardware they replaced: Go lowers `math.Sqrt` to a
@@ -105,6 +108,10 @@ Rules, identical for all four:
 - Each destination must be either **identical to `src`** (in-place, supported
   and tested) or **non-overlapping**. Partial overlap is undefined — the SIMD
   kernels read a whole eight-element vector before writing any of it.
+- The two destinations of a fused call must additionally **not overlap each
+  other**, and in particular must not be the same slice. Both can be disjoint
+  from `src` and still share storage, so the rule above does not cover it;
+  passing one slice for both leaves it holding only `log(cosh)`.
 - No `Precision` argument, and no `…BatchPrec` variants. Resolving a precision
   tier per element costs more than the polynomial it selects, so the tier is
   fixed and constant-folded.

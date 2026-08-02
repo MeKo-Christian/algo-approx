@@ -23,6 +23,15 @@
 // pair is a programming error, not a supported mode, and a test using two
 // distinct slices will never catch it.
 //
+// The two destinations of a fused function must additionally not overlap each
+// other, in any way, including being the same slice. That case is not covered
+// by the rule above — two destinations can each be disjoint from src and still
+// share storage — and it is the easier mistake to make, because it looks
+// harmless: passing one slice for both leaves it holding only log(cosh), with
+// the tanh values silently overwritten. There is no cheap runtime check for it
+// (comparing base pointers would not catch a partial overlap), so it is stated
+// here rather than enforced.
+//
 // Batch functions take no Precision argument. Resolving a precision tier per
 // element costs more than the polynomial it selects (see the measurements in
 // AGENTS.md), so the tier is fixed at PrecisionBalanced and constant-folded;
@@ -31,5 +40,9 @@
 // The float64 batch functions are scalar loops over the same kernels the scalar
 // API uses and are bit-identical to them. The float32 batch functions are not:
 // they run a float32-native minimax kernel where the scalar API widens to
-// float64, which makes them both faster and more accurate. See ACCURACY.md.
+// float64. That is always faster, but it is not uniformly more accurate — it is
+// a large win for exp (1 ulp against 38), a wash for tanh, and a small loss for
+// log(cosh) (2 ulp, 4 at the branch seam, against a correctly rounded scalar
+// result). Pick the batch path for throughput; see ACCURACY.md before picking it
+// for accuracy.
 package approx

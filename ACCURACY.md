@@ -113,15 +113,35 @@ patterns:
 The 4 ulp is confined to the seam just above the branch point at
 $|x| = 0.625$; see `logCoshLarge32` in `internal/simd`.
 
-**The batch and scalar float32 paths are not bit-identical, and the batch path
-is the more accurate of the two.** The scalar `*32` entry points are thin shims
-over the float64 kernels: they widen, evaluate a Taylor series in float64, and
-round once. The batch kernels are float32-native minimax polynomials with
-FMA-contracted evaluation. For `exp` that is the difference between **38 ulp and
-1** — roughly 28× — and the reason is the basis, not the width: the balanced
+**The batch and scalar float32 paths are not bit-identical, and which one is
+more accurate depends on the function.** The scalar `*32` entry points are thin
+shims over the float64 kernels: they widen, evaluate in float64, and round once.
+The batch kernels are float32-native minimax polynomials with FMA-contracted
+evaluation. Those are different trade-offs, and they do not all fall the same
+way:
+
+| Function          | scalar `*32`, Balanced | batch |            better |
+| ----------------- | ---------------------: | ----: | ----------------: |
+| `exp`             |                 38 ulp | 1 ulp | **batch**, by ~28x |
+| `tanh`            |                  1 ulp | 1 ulp |            neither |
+| `log(cosh)`       |                  0 ulp | 2 ulp (4 at the seam) | **scalar** |
+
+So **do not reach for the batch path for accuracy alone.** For `exp` it is a
+large win, and the reason is the basis rather than the width: the balanced
 `expPoly` is a degree-5 Taylor whose truncation is $|r|^6/720 = 2.4$e-6 at
-$|r| \le \ln 2/2$, i.e. ~20 float32 ulp before any rounding at all. Going
-minimax at equal degree buys ~3 ulp for free.
+$|r| \le \ln 2/2$, i.e. ~20 float32 ulp before any rounding at all, so going
+minimax at equal degree buys ~3 ulp for free. For `log(cosh)` it is a small loss:
+the scalar shim inherits a float64 kernel accurate to 3.1e-9 and therefore
+returns the correctly rounded float32 result, which a float32-native kernel
+cannot beat and does not quite match at the branch seam. If you need
+`log(cosh)` to the last ulp and do not need the throughput, `FastLogCosh32` is
+the better call.
+
+Read the two columns as indicative rather than as a like-for-like comparison:
+the scalar figures come from the 4001-point sweeps described above, while the
+batch figures are maxima over **every** float32 bit pattern. A sweep cannot find
+a worst case it does not sample, so the scalar column is, if anything,
+optimistic.
 
 Code that mixes the two paths should therefore expect a disagreement, and the
 derived agreement bound is the **sum** of the two accuracy bounds, not twice
