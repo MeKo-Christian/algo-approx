@@ -36,6 +36,13 @@
 // values. Passing a partially overlapping pair is a programming error, not a
 // supported mode.
 //
+// TanhLogCoshFloat32 additionally requires its two destinations not to overlap
+// each other, including the degenerate case of being the same slice. The rule
+// above does not cover it: both destinations can be disjoint from src and still
+// share storage, in which case the fused loop writes tanh and then overwrites
+// it with log(cosh). Passing one slice for both is the easy version of this
+// mistake and returns a plausible-looking buffer holding only log(cosh).
+//
 // # Accuracy
 //
 // Measured against float64 references rounded once to float32, over the whole
@@ -58,9 +65,14 @@ package simd
 //
 // dst must be at least as long as src. See the package doc for the aliasing
 // rule.
+//
+// The panic below names approx.FastExpBatch32 rather than this function, and
+// that is deliberate: this package is internal, so the only way a caller can
+// reach this panic is through that public entry point, and a message naming a
+// package the caller cannot import would send them looking in the wrong place.
 func ExpFloat32(dst, src []float32) {
 	if len(dst) < len(src) {
-		panic("simd: ExpFloat32: dst shorter than src")
+		panic("approx: FastExpBatch32: dst shorter than src")
 	}
 
 	n := len(src)
@@ -78,11 +90,11 @@ func ExpFloat32(dst, src []float32) {
 // both destinations independently.
 func TanhLogCoshFloat32(dstTanh, dstLogCosh, src []float32) {
 	if len(dstTanh) < len(src) {
-		panic("simd: TanhLogCoshFloat32: dstTanh shorter than src")
+		panic("approx: FastTanhLogCoshBatch32: dstTanh shorter than src")
 	}
 
 	if len(dstLogCosh) < len(src) {
-		panic("simd: TanhLogCoshFloat32: dstLogCosh shorter than src")
+		panic("approx: FastTanhLogCoshBatch32: dstLogCosh shorter than src")
 	}
 
 	n := len(src)

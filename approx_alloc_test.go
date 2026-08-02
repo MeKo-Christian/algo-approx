@@ -31,6 +31,47 @@ func TestNoAllocs_PublicAPI_Float64(t *testing.T) {
 
 // Not t.Parallel(): see TestNoAllocs_PublicAPI_Float64.
 //
+// The buffers are deliberately allocated outside the measured closure. Making
+// them inside it would measure make() — three guaranteed allocations — and say
+// nothing about the batch call, which is the thing under test.
+//
+//nolint:paralleltest
+func TestNoAllocs_PublicAPI_Batch(t *testing.T) {
+	const n = 512
+
+	src32 := make([]float32, n)
+	dst32 := make([]float32, n)
+	tanh32 := make([]float32, n)
+	src64 := make([]float64, n)
+	dst64 := make([]float64, n)
+	tanh64 := make([]float64, n)
+
+	for i := range n {
+		x := float64(i)/float64(n)*8 - 4
+		src32[i] = float32(x)
+		src64[i] = x
+	}
+
+	cases := []struct {
+		name string
+		run  func()
+	}{
+		{"FastExpBatch32", func() { FastExpBatch32(dst32, src32) }},
+		{"FastExpBatch64", func() { FastExpBatch64(dst64, src64) }},
+		{"FastTanhLogCoshBatch32", func() { FastTanhLogCoshBatch32(tanh32, dst32, src32) }},
+		{"FastTanhLogCoshBatch64", func() { FastTanhLogCoshBatch64(tanh64, dst64, src64) }},
+	}
+
+	for _, tc := range cases {
+		allocs := testing.AllocsPerRun(100, tc.run)
+		if allocs != 0 {
+			t.Fatalf("%s allocated: %v", tc.name, allocs)
+		}
+	}
+}
+
+// Not t.Parallel(): see TestNoAllocs_PublicAPI_Float64.
+//
 //nolint:paralleltest
 func TestNoAllocs_PublicAPI_Float32(t *testing.T) {
 	cases := []struct {

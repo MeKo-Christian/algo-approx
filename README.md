@@ -4,6 +4,19 @@ Fast, allocation-free mathematical approximations for Go.
 
 ## Read this before reaching for a `Fast*` function
 
+**The scalar functions are roughly break-even with `math`. The batch functions
+are where this library wins, and they win by about 11×.**
+
+If you have a slice of `float32` to transform, use `FastExpBatch32` or
+`FastTanhLogCoshBatch32`. They run a hand-written AVX2+FMA kernel where the CPU
+has it, and they are ~11× faster per element than a scalar loop. `FastExpBatch32`
+is also far more accurate than `FastExp32` (1 ulp against 38) — but that is an
+`exp` result and does not generalise: batch `tanh` ties the scalar path and batch
+`log(cosh)` is slightly worse. Choose the batch path for throughput, and check
+[ACCURACY.md](ACCURACY.md) before choosing it for accuracy. If you are calling a
+`Fast*` function one value at a time, read the rest of this section first — the
+case for the scalar API rests on its guarantees, not on its speed.
+
 > **`FastSqrt`, `FastInvSqrt` and `FastRecip` have been removed.** They were
 > 4–19× slower than the hardware they replaced: Go lowers `math.Sqrt` to a
 > single `SQRTSD` on amd64 and `FSQRT` on arm64 — and intrinsifies it on every
@@ -24,6 +37,13 @@ and marginal at `PrecisionFast`. See the tables below.
 
 `log` (ln), `exp`, the trig/arctrig family, `tanh` and `logcosh`, all with
 `float32`/`float64` generics and a `Precision` knob. Every function is allocation-free (enforced by `approx_alloc_test.go`).
+
+A **batch (slice) API** is public as of this release: `FastExpBatch32/64` and
+`FastTanhLogCoshBatch32/64`. The float32 pair dispatches to an AVX2+FMA kernel
+where the CPU has both features and to a float32-native pure-Go kernel
+otherwise; the float64 pair is a scalar loop, bit-identical to the scalar
+entry points, with the fused hyperbolic one sharing its `exp(-2|x|)` between
+both outputs. Batch `log`, `sin` and the rest do not exist yet.
 
 ## Install
 
@@ -55,6 +75,50 @@ func main() {
 }
 ```
 
+### Batch (slice) API
+
+```go
+src := make([]float32, 4096)
+dst := make([]float32, 4096)
+
+// SIMD where the CPU has AVX2+FMA, a float32-native Go kernel otherwise.
+approx.FastExpBatch32(dst, src)
+
+// In-place is supported.
+approx.FastExpBatch32(src, src)
+
+// tanh and log(cosh) in one fused pass: both outputs share the same
+// exp(-2|x|), so the pair stays consistent exactly as the scalar pair does.
+tanh := make([]float32, 4096)
+logcosh := make([]float32, 4096)
+approx.FastTanhLogCoshBatch32(tanh, logcosh, src)
+
+// float64 variants exist too, as scalar loops over the same kernels the
+// scalar API uses — bit-identical to FastExp64 / FastTanh64 / FastLogCosh64.
+src64 := make([]float64, 4096)
+tanh64 := make([]float64, 4096)
+logcosh64 := make([]float64, 4096)
+approx.FastTanhLogCoshBatch64(tanh64, logcosh64, src64)
+```
+
+Rules, identical for all four:
+
+- A destination shorter than `src` **panics**. Exactly `len(src)` elements are
+  written; a longer destination keeps its tail.
+- Each destination must be either **identical to `src`** (in-place, supported
+  and tested) or **non-overlapping**. Partial overlap is undefined — the SIMD
+  kernels read a whole eight-element vector before writing any of it.
+- The two destinations of a fused call must additionally **not overlap each
+  other**, and in particular must not be the same slice. Both can be disjoint
+  from `src` and still share storage, so the rule above does not cover it;
+  passing one slice for both leaves it holding only `log(cosh)`.
+- No `Precision` argument, and no `…BatchPrec` variants. Resolving a precision
+  tier per element costs more than the polynomial it selects, so the tier is
+  fixed and constant-folded.
+- Allocation-free, like everything else public.
+- There is no batch `tanh` or `log(cosh)` on its own. If you only need one,
+  pass a reusable scratch buffer for the other destination.
+
 ## Benchmarks (2026-08-02)
 
 ### Method
@@ -82,6 +146,64 @@ just bench-consumer    # the same, from consumerbench/ — a separate module
   towards 1.0 — hardest on the cheapest operations. That is what made the
   hardware-backed `math` entries look several times more expensive than they
   are.
+
+### Batch (slice) API — where the library actually wins
+
+Reported in **ns per element**, so the sizes are comparable to each other and
+to the scalar table below. "scalar API" is a plain `for` loop over the
+corresponding `Fast*32` entry point; "pure-Go batch" is the float32-native
+batch kernel with the assembly compiled out (`-tags purego`), which is the
+honest denominator — a float64 kernel wrapped in float32 conversions would
+flatter the assembly by ~2× before a single vector instruction ran.
+
+`exp`, on an i7-1255U, `taskset -c 2` (P-core), `GOMAXPROCS=1`, medians of 10
+separate runs:
+
+|       N | scalar API | pure-Go batch | `FastExpBatch32` | vs pure-Go batch | vs scalar |
+| ------: | ---------: | ------------: | ---------------: | ---------------: | --------: |
+|      64 |      24.97 |          6.19 |        **0.536** |            11.5× |     46.6× |
+|     256 |      24.62 |          6.56 |        **0.563** |            11.6× |     43.7× |
+|    1024 |      25.38 |          6.35 |        **0.520** |            12.2× |     48.8× |
+|    4096 |      24.41 |          6.07 |        **0.520** |            11.7× |     46.9× |
+|   65536 |      24.40 |          6.00 |        **0.507** |            11.8× |     48.2× |
+| 1048576 |      24.61 |          6.69 |        **0.545** |            12.3× |     45.1× |
+
+Fused `tanh` + `log(cosh)`, on an **idle** Xeon Gold 5218 (2.30 GHz, Cascade
+Lake), `GOMAXPROCS=1 taskset -c 0`, 10 separate `-count=1` runs through
+`benchstat`, CV ≤ 5 %. Both outputs are produced per element, so these figures
+cover two functions, not one:
+
+|       N | scalar API | pure-Go batch | `FastTanhLogCoshBatch32` | vs pure-Go batch | vs scalar |
+| ------: | ---------: | ------------: | -----------------------: | ---------------: | --------: |
+|      64 |      67.80 |         32.16 |                **3.223** |            9.98× |     21.0× |
+|     256 |      67.66 |         32.37 |                **2.910** |           11.12× |     23.3× |
+|    1024 |      67.14 |         32.09 |                **2.832** |           11.33× |     23.7× |
+|    4096 |      67.04 |         32.64 |                **2.827** |           11.55× |     23.7× |
+|   65536 |      67.46 |         32.68 |                **2.829** |           11.55× |     23.8× |
+| 1048576 |      66.98 |         33.12 |                **2.819** |           11.75× |     23.8× |
+
+Three things are worth reading off these tables rather than skimming past:
+
+- **The ratio does not decay with N.** No bandwidth collapse appears even at
+  N = 1 M. At 2.82 ns/element the fused kernel moves ~4.3 GB/s counting all
+  three slices, far under DRAM; it is compute-bound over the whole range.
+- **11.7× exceeds the eight-lane theoretical ceiling**, so it is not all
+  vectorization. The pure-Go baseline emits ~63 instructions/element where the
+  assembly needs ~3.1. Against a hypothetically-tight scalar Go baseline the
+  figure would be nearer 6×.
+- **The fused kernel does not depend on a favourable branch mix.** `tanh` has a
+  data-dependent branch at |x| = 0.625 and a vector kernel cannot branch per
+  lane, so it evaluates both branches and blends. Benchmarked against an
+  adversarial input where every element is past the branch point, N = 4096:
+  11.47 µs against 11.58 µs for a ramp over [-10, 10]. Within 1 % either way.
+
+The float64 batch functions are scalar loops and get none of this. `FastExpBatch64`
+only amortises the call frame — do not expect a speedup. `FastTanhLogCoshBatch64`
+is the exception that is worth using: sharing one `exp(-2|x|)` between the two
+outputs measured **~1.7× faster** than two separate scalar loops at N = 4096
+(10.7 vs 17.8 ns/element, minimum of 11 pinned runs on the i7-1255U — taken on a
+shared machine, so treat it as an order-of-magnitude confirmation of the
+argument rather than a published figure).
 
 ### Measured from inside the package
 
@@ -123,14 +245,14 @@ have measured that 7 % mattering.
 path. It exists because **a library that only wins when benchmarked from inside
 itself does not win.** Same method, same CPU:
 
-| Operation                      | approx ns | math ns | approx vs math |
-| ------------------------------ | --------: | ------: | -------------: |
-| `FastLog` (generic entry)      |      3.74 |    4.89 |   1.31× faster |
-| `FastLog64` (concrete entry)   |      3.78 |    4.89 |   1.30× faster |
-| `FastLogPrec`, Balanced        |      3.81 |    4.89 |   1.28× faster |
-| `FastExp64`                    |      4.51 |    4.53 |     break-even |
-| `FastTanh64`                   |      7.49 |    6.73 |   1.11× slower |
-| `FastLogCosh64`                |     10.34 |   17.59 |   1.70× faster |
+| Operation                    | approx ns | math ns | approx vs math |
+| ---------------------------- | --------: | ------: | -------------: |
+| `FastLog` (generic entry)    |      3.74 |    4.89 |   1.31× faster |
+| `FastLog64` (concrete entry) |      3.78 |    4.89 |   1.30× faster |
+| `FastLogPrec`, Balanced      |      3.81 |    4.89 |   1.28× faster |
+| `FastExp64`                  |      4.51 |    4.53 |     break-even |
+| `FastTanh64`                 |      7.49 |    6.73 |   1.11× slower |
+| `FastLogCosh64`              |     10.34 |   17.59 |   1.70× faster |
 
 The generic and the concrete entry points now cost the same, which was not
 true before: see the note below.
