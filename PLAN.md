@@ -955,8 +955,44 @@ precision.
       `cmd/compile/internal/ssagen/intrinsics.go` intrinsifies `math.sqrt` to `ssa.OpSqrt` on
       I386, AMD64, ARM, ARM64, Loong64, MIPS, MIPS64, PPC64, RISCV64, S390X and Wasm — every
       GOARCH Go supports. There is no target where the approximation wins.
-- [ ] Public batch API design/naming — still deferred. `internal/simd` stays internal until
-      then.
+- [x] **Public batch API shipped** — `FastExpBatch32/64` and `FastTanhLogCoshBatch32/64` in the
+      root package, forwarding to `internal/simd` (float32) and a new `internal/approx/batch.go`
+      (float64). Contract lifted verbatim from the `internal/simd` package doc: panic if a
+      destination is shorter than `src`, `len(src)` elements processed, destinations must be
+      identical to `src` or non-overlapping. No `...BatchPrec` variants — the tier is a compile-
+      time constant, per §"Precision must not be a runtime argument in a loop" in `AGENTS.md`.
+      See §6.2.2 for two design notes that came out of building it.
+
+### 6.2.2 Batch API design notes
+
+**There is no generic `FastExpBatch[T Float]`, and the reason is not the one first assumed.**
+The design was written up on the theory that reaching the float32 kernel from a generic body
+needs `any(dst).([]float32)`, which would box the slice header through `runtime.convTslice` and
+allocate — breaking the zero-allocation invariant. **Measured, that is false.** `AllocsPerRun`
+reports 0 for all four variants tried (`[]float32`, `[]float64`, a named `~float32` type, and
+one behind a `//go:noinline` wrapper), and `go tool objdump` shows no `convTslice` in the
+generated code at all: `[]float32` and `[]float64` are distinct gcshapes, so each instantiation
+compiles separately and the type assertion is statically decidable and folded away. The generic
+form is therefore mechanically viable; it is omitted only because the concrete `…32`/`…64` names
+say honestly which width has a kernel behind it. Anyone revisiting this should know the
+mechanical objection does not exist.
+
+**The panics name the public function, not the internal one.** `internal/simd`'s length checks
+say `approx: FastExpBatch32: ...`, which reads oddly inside that package but is the only message
+a caller can act on — they cannot import `internal/simd` and would otherwise be sent looking for
+a package that does not exist on their import path.
+
+**`golang.org/x/sys` is now on the public import path.** `approx` imports `internal/simd` →
+`internal/cpu` → `golang.org/x/sys/cpu`, so every consumer links it and runs its CPUID init,
+including consumers that only call scalar functions. It was already a module requirement; what
+changed is that it is now actually linked. `consumerbench` needed a `go.sum` for the first time.
+
+**The float32 `exp` agreement bound sits exactly at its derived ceiling.** Scalar `FastExp32` is
+38 ulp and the batch kernel is 1, so the most they can disagree by is 38 + 1 = 39 — and the
+measured maximum is exactly 39, at x ≈ 8.665, identically with AVX2 on, AVX2 off and under
+`purego`. That confirms the derivation rather than threatening it, but it leaves no headroom, so
+the same care applies here as to `hypTolTanh`: if this bound ever needs raising, re-derive it
+from a float64 reference rather than nudging the constant.
 - [ ] **Replace the three `VDIVPS` with `VRCPPS` + two Newton-Raphson steps.** This is the
       single largest remaining win and the one concrete follow-up the measurements point at.
       The reciprocal sequence was probed on this hardware and lands within **1 ulp**, so it is
